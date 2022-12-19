@@ -9,6 +9,10 @@ library(dplyr)
 library(foreach)
 library(doParallel)
 
+
+################################################################################
+# Themes and saved data
+################################################################################
 ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
                                        "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "M"),
                        CHROM = c("NC_001133.9", "NC_001134.8", "NC_001135.5", "NC_001136.10",
@@ -17,9 +21,6 @@ ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII",
                                  "NC_001145.3", "NC_001146.8", "NC_001147.6", "NC_001148.4", "NC_001224.1"))
 
 
-
-################################################################################
-## Functions
 cybr_BSAcolors = c("#345F6F","#D7335C","#FFB05C",
                    "black",
                    "gray",
@@ -49,6 +50,10 @@ theme_cybr <- function(base_size = 11,
           #FROM MY PLOTS
           legend.position = "bottom", #axis.text.x=element_blank(),
           axis.ticks.x=element_blank())}
+
+################################################################################
+## Functions
+################################################################################
 
 cybrInputGATKTable <- function(rawData, yeast = TRUE){
 
@@ -216,10 +221,6 @@ cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 
   return(BSAdf)
 }
-
-
-
-
 
 #### Reformat data so that it has bulk etc included
 

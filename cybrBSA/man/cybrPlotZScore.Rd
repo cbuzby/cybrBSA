@@ -1,7 +1,7 @@
 \name{cybrPlotZScore}
 \alias{cybrPlotZScore}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Plot Z scores
+\title{Plot Z-scores
 %%  ~~function to do ... ~~
 }
 \description{Uses ggplot geom_point() to plot Z scores faceted by chromosome. Requires ggplot2 and dplyr.

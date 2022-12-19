@@ -1,7 +1,7 @@
 \name{cybrSmoothBSAWindows}
 \alias{cybrSmoothBSAWindows}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Smooth Z scores from logistic regression
+\title{Smooth Z-scores from logistic regression
 %%  ~~function to do ... ~~
 }
 \description{Smooth the outputs of cybrBSA_GLM()
@@ -9,6 +9,10 @@
 }
 \usage{
 cybrSmoothBSAWindows(Results, windowsize = 100, chr = unique(Results$CHROM)[1])
+
+*Alternative:*
+cybrSmoothBSAWindows_b(Results, windowsize = 100, chr = unique(Results$CHROM)[1])
+
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -40,25 +44,46 @@ Function will take in all Z scores and output a smoothed score for each.
 Cassandra Y Buzby
 %%  ~~who you are~~
 }
-\note{
+\note{To determine which window size to use, run checkWindowLim() on dataset.
 %%  ~~further notes~~
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
+\section{Warnings }{Both standard and _b versions will run, but _b will give usable data if the chromosome does not have enough data points whereas standard version will crash and should only be used per chromosome}
 
 \seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
+
+sampledata <- data.frame(CHROM = factor(sample(ChromKey$chromosomes,
+                                        size = 100,
+                                        replace = TRUE,
+                                        prob = c(1,3,1.2,10,5,5,5,5,4,
+                                                 4,3,6,4,3,2,5,0.5))),
+                          POS = sample(1:5000, 1000, replace = TRUE),
+                          DummyData = sample(1:5000, 1000, replace = TRUE))
+
+#single chromosome
+cybrSmoothBSAWindows(sampledata, windowsize = 10, chr = "II")
+
+#all chromosomes
+foreach(i = unique(sampledata$CHROM), .combine=rbind)\%do\%{
+  cybrSmoothBSAWindows_b(sampledata, chr = i, windowsize = 10)
+\}
+
+-------------------------------------------------------------------------------
+#Non-functional data
+-------------------------------------------------------------------------------
+
 #Run each function individually
 GLMoutput <- cybrBSA_GLM(inputdata, "II")
 cybrSmoothBSAWindows(GLMoutput, windowsize = 200)
 
-
 #Running the entire genome in a loop
-wholegenomeBSA <- foreach(i=unique(testmerge$CHROM), .combine=rbind) %dopar%{
+wholegenomeBSA <- foreach(i=unique(testmerge$CHROM), .combine=rbind) \%dopar\%{
   cybrSmoothBSAWindows(cybrBSA_GLM(testmerge, chr = i))
-}
+\}
 
 
 }

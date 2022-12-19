@@ -7,8 +7,7 @@ Calculate z-scores of positional window for BSA}
 Within a window of positions, add all read counts together to calculate effects}
 \usage{
 cybrBSA_GLM_window(lrP, chr = "II", windowsize = 5000,
-                    formula = "PAllele~Bulk*Parent",
-                    resultscol = c("Intercept", "Bulk", "Parent", "Interaction"))
+                    formula = "PAllele~Bulk*Parent")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,16 +19,16 @@ REQUIRED: Chromosome to separate by}
 Number of base pairs to calculate within}
   \item{formula}{
 Input for logistic regression, WITHOUT spaces}
-  \item{resultscol}{
-Rename column names for output; change to NA if standard output is desired}
+
 }
 \details{
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
+Data frame containing columns CHROM, POS, and coefficient names
+\item{CHROM }{chromosome as character of roman numeral}
+\item{POS }{position of SNP at central locus within window}
+\item{coefficients}{Z score of the effect listed in logistic regression. There will be one coefficient per factor added and interaction terms for each listed as * in formula}
+
 %% ...
 }
 \references{

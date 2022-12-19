@@ -520,8 +520,7 @@ checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
 ################################################################################
 # Adding the loci within a window instead of smoothing
 
-cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "PAllele~Bulk*Parent",
-                                resultscol = c("Intercept", "Bulk", "Parent", "Interaction")){
+cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "PAllele~Bulk*Parent"){
   require(stringr)
   if(identical(grep(" ", formula), integer(0)) == FALSE){return(print("Remove spaces from formula or use cybrBSA_GLM()"))}
 
@@ -553,7 +552,6 @@ cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "P
     #Format the results for the next function
     Results <- as.data.frame(Results)
     colnames(Results) <- c("CHROM", "POS", names(resnames$coefficients))
-    #colnames(Results) <- c("CHROM", "POS", resultscol)
 
     for(i in 2:length(colnames(Results))){
       Results[,i] <- as.numeric(Results[,i])

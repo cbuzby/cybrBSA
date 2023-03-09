@@ -693,5 +693,61 @@ CSSI_Zeocin_cybr2 %>% pivot_longer(c(-CHROM, -POS)) %>% group_by(name) %>% summa
 t(CSSI_Zeocin_cybr2)[, 1:10]
 ```
 
+## Adding New Data: CuSO4 Replicates
 
+```{r}
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+parentSNPids <- cybrConvertParentalAlleles(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"), Truncate = TRUE)
+
+#head(parentSNPids)
+
+parentSNPids %>% group_by(CHROM, POS) %>% summarize(Type = Type, Unique = length(unique(Type))) %>% filter(Unique == 1) -> pSNPs
+
+mydatatotest = "Data/HKTFTDRX2.SortedCat.vcf.output.table"
+
+CSSI_CuSO42 <- cybrInputGATKTable(mydatatotest) %>% 
+  cybrQualityFilter() %>% 
+  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
+  na.omit()
+
+################################################################################
+#Using Gsub for this
+
+gsub(CSSI_CuSO42$Dataset, "HKTFTDRX2_n01_", "")
+CSSI_CuSO42 %>% mutate(DShort = gsub("HKTFTDRX2_n01_", "", Dataset),
+                       DS = gsub(".fastq", "", DShort)) %>% select(-Dataset, -DShort) -> CSSI_CuSO42
+
+CSSI_CuSO42$Bulk <- NA
+CSSI_CuSO42$Parent <- NA
+CSSI_CuSO42$Rep <- NA
+
+CSSI_CuSO42$Bulk[grep("C", CSSI_CuSO42$DS)] <- "CuSO4"
+CSSI_CuSO42$Bulk[grep("D", CSSI_CuSO42$DS)] <- "Dilute"
+
+CSSI_CuSO42$Rep[grep("a", CSSI_CuSO42$DS)] <- "A"
+CSSI_CuSO42$Rep[grep("b", CSSI_CuSO42$DS)] <- "B"
+
+CSSI_CuSO42$Parent[grep("O", CSSI_CuSO42$DS)] <- "Oak"
+CSSI_CuSO42$Parent[grep("W", CSSI_CuSO42$DS)] <- "Wine"
+
+CSSI_CuSO42$ReadCount <- as.numeric(CSSI_CuSO42$ReadCount)
+  
+# #THIS IGNORES REPLICATES
+CSSI_CuSO42 %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+ pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_CuSO42_cybr2
+
+saveRDS(object = CSSI_CuSO42_cybr2, file = "C:/Users/cassa/OneDrive/Documents/GitHub/Sequencing/Analysis/RdataFiles/CSSI_CuSO42_cybr2.rds")
+```
+
+Don't actually use this
+
+```{r}
+CSSI_CuSO42_cybr2 <- readRDS("CSSI_CuSO42_cybr2.rds")
+
+CSSI_CuSO42_cybr2 %>% pivot_longer(c(-POS, -CHROM), names_to = "label", values_to = "summary") %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_CuSO42_Window100
+
+saveRDS(CSSI_CuSO42_Window100, file = "CSSI_CuSO42_Window100.rds")
+```
 

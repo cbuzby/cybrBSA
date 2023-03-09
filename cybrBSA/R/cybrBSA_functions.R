@@ -190,12 +190,12 @@ cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 
   Parents <- unique(Parentdf$Type)
   if(length(Parents) == 2){
-    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.REF" & BSAdf$Type == Parents[1]] <- Parents[1]
-    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.REF" & BSAdf$Type == Parents[2]] <- Parents[2]
+    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.REF" & BSAdf$Type == Parents[2]] <- Parents[1]
+    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.REF" & BSAdf$Type == Parents[1]] <- Parents[2]
 
     #Run if only two-parent cross
-    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.ALT" & BSAdf$Type == Parents[1]] <- Parents[2]
-    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.ALT" & BSAdf$Type == Parents[2]] <- Parents[1]
+    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.ALT" & BSAdf$Type == Parents[2]] <- Parents[2]
+    BSAdf$PAllele[BSAdf$AltRef_Allele == "AD.ALT" & BSAdf$Type == Parents[1]] <- Parents[1]
 
   }else{
     for(i in Parents){

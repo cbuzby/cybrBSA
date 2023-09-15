@@ -5,9 +5,10 @@ library(tidyr)
 library(reshape2)
 library(cowplot)
 library(dplyr)
+require(circlize)
 
-library(foreach)
-library(doParallel)
+library(foreach) #no longer used
+library(doParallel) #no longer used
 
 
 ################################################################################
@@ -52,7 +53,166 @@ theme_cybr <- function(base_size = 11,
           axis.ticks.x=element_blank())}
 
 ################################################################################
-## Functions
+## FUNCTIONS - New
+################################################################################
+
+#Make sure that the parameters to look at (Zscore, etc) are under "coefficient"
+cybr_callpeaks_chr3 <- function(dataset,
+                                statistic = "Effect",
+                                statistic_col = "label",
+                                value_col = "GLMResult",
+                                exclude = "(Intercept)"){
+
+  #Make dataset
+  dataset %>% pivot_wider(names_from = statistic_col, values_from = value_col) %>%
+    select(CHROM, POS, coefficient, statistic = statistic) -> piv_glm
+
+  #Set cutoff
+  piv_glm %>% filter(CHROM == "III", coefficient != "(Intercept)") %>%
+    summarize(X = max(abs(statistic))) -> Cutoff
+
+  #Find peaks
+  piv_glm%>%
+    filter(coefficient %in% exclude == FALSE) %>%
+    filter(abs(statistic) > Cutoff$X) %>%
+    group_by(CHROM, coefficient) %>%
+    summarize(statistic = max(abs(statistic))) %>%
+    right_join(piv_glm) -> output
+
+  colnames(output)[colnames(output) == "statistic"] = statistic
+
+  return(output)
+}
+################################################################################
+cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL){
+  dataset %>% mutate(summary = abs(summary)) -> dataset
+  #Set cutoff
+
+  Cutoff <- data.frame(X = NA)
+  if(is.null(threshold) == FALSE){
+    Cutoff$X <- threshold
+  }else{
+    dataset %>% filter(CHROM == "III") %>%
+      ungroup() %>%
+      reframe(X = max(summary)) -> Cutoff
+  }
+  #Find peaks
+  dataset %>%
+    filter(summary > Cutoff$X) %>%
+    group_by(CHROM, label) %>%
+    summarize(summary = max(summary)) %>%
+    ungroup() %>%
+    merge(dataset) -> output
+
+  if(is.null(param) == FALSE){
+    output %>% filter(label == param) -> output
+  }
+  return(output)
+}
+################################################################################
+cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL, color1 = "#7DB0B0", color8 = "#ED7B01"){
+
+  color1fade <- paste(color1, "50", sep = "")
+  color8fade <- paste(color8, "50", sep = "")
+
+  #SET UP DATA
+  df8 <- data.frame(sectors = as.character(d8$CHROM),
+                    x = d8$POS,
+                    y = abs(d8$summary),
+                    label = d8$label)
+
+  df1 <- data.frame(sectors = as.character(d1$CHROM),
+                    x = d1$POS,
+                    y = abs(d1$summary),
+                    label = d1$label)
+
+  #Take out only interactions - could do this at the prior step anyways?
+  df8int <- subset(df8, label == "Interaction")
+  df1int <- subset(df1, label == "Interaction")
+
+  #Merge the other chromosomes in, so bind chr1 8 and chr8 1
+  df8int <- rbind(df8int, df1int[df1int$sectors == "VIII",])
+  df1int <- rbind(df1int, df8int[df8int$sectors == "I",])
+
+  #Remove the data from those
+  df8int$y[df8int$sectors == "VIII"] <- 0
+  df1int$y[df1int$sectors == "I"] <- 0
+
+  #REORDER THE CHROMOSOMES
+  df8int$sectors <- factor(df8int$sectors, levels = as.character(as.roman(1:16)))
+  df1int$sectors <- factor(df1int$sectors, levels = as.character(as.roman(1:16)))
+
+  ##############################################################################
+  dfall <- rbind(df1int, df8int)
+  circos.par("track.height" = 0.3, start.degree = 90, cell.padding = c(0,0))
+  circos.initialize(dfall$sectors, x = dfall$x)
+
+  if(is.null(maxy)){
+    #I think this makes the sizes?
+    circos.track(ylim = c(max(c(dfall$y)), 0), dfall$sectors, y = dfall$y,
+                 panel.fun = function(x, y) {
+                   circos.text(CELL_META$xcenter,
+                               0 - mm_y(5),
+                               CELL_META$sector.index,
+                               niceFacing = FALSE)
+                   circos.axis(labels.cex = 0.1)
+                 })
+  }else{
+    circos.track(ylim = c(maxy, 0), dfall$sectors, y = dfall$y,
+                 panel.fun = function(x, y) {
+                   circos.text(CELL_META$xcenter,
+                               0 - mm_y(5),
+                               CELL_META$sector.index,
+                               niceFacing = FALSE)
+                   circos.axis(labels.cex = 0.1)
+                 })
+  }
+  #Makes the chromosome overlap parts
+  #CHROMOSOME I
+  draw.sector(83.5, #RIGHT
+              90, #LEFT
+              rou1 = 0.99, rou2 = 0.69, clock.wise = FALSE, col = color1fade, border = FALSE)
+  #CHROMOSOME VIII
+  draw.sector(289.5, #LEFT
+              305.4, #RIGHT
+              rou1 = 0.99, rou2 = 0.69, clock.wise = FALSE, col = color8fade, border = FALSE)
+
+  #Makes the lines
+  circos.trackPoints(df8int$sectors, df8int$x, abs(df8int$y), col = color8, pch = 16, cex = 0.1)
+  circos.trackPoints(df1int$sectors, df1int$x, abs(df1int$y), col = color1, pch = 16, cex = 0.1)
+
+  if(is.null(peaklist8) == FALSE){
+    for(i in 1:length(peaklist8$POS)){
+      circos.link(peaklist8$CHROM[i],
+                  peaklist8$POS[i],
+                  #Add 8 after
+                  "VIII", c(0, max(df8int$x[df8int$sectors == "VIII"])),
+
+                  col = color8fade,
+                  h.ratio = 0.3,
+                  border = color8fade,
+                  lwd = 2)
+    }
+  }
+
+  if(is.null(peaklist1) == FALSE){
+    for(i in 1:length(peaklist1$POS)){
+      circos.link("I",c(0, max(df1int$x[df1int$sectors == "I"])),
+                  #add 1 first
+                  peaklist1$CHROM[i],
+                  peaklist1$POS[i],
+                  col = color1fade,
+                  h.ratio = 0.3,
+                  border = color1fade,
+                  lwd = 2)
+    }
+  }
+
+  circos.clear()
+}
+
+################################################################################
+## Functions - STILL USED
 ################################################################################
 
 cybrInputGATKTable <- function(rawData, yeast = TRUE){
@@ -224,6 +384,13 @@ cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 
 #### Reformat data so that it has bulk etc included
 
+
+
+
+################################################################################
+## FUNCTIONS NO LONGER INCLUDED
+################################################################################
+
 ################################################################################
 ### Run GLM Function
 
@@ -385,6 +552,29 @@ cybrSmoothBSAWindows_Med <- function(Results, windowsize = 100, chr = unique(Res
 }
 
 ################################################################################
+# Check number of loci per chromosome for samples to get window sizes
+
+checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
+  if(is.null(exceptchr) == FALSE){
+    includechr = FALSE
+  }
+  if(includechr != TRUE){
+    if(is.null(exceptchr)){
+      Dataset %>% filter(CHROM %in% includechr) -> Dataset
+    }else{
+      Dataset %>% filter(CHROM %in% exceptchr == FALSE | CHROM %in% includechr) -> Dataset
+    }
+  }
+
+  Dataset %>% group_by(CHROM) %>%
+    summarise(CHROM = CHROM, SNPs = length(unique(POS))) %>%
+    distinct() %>%
+    mutate(maxW = floor(SNPs/2)) -> tablecounts
+
+  return(tablecounts)
+}
+
+################################################################################
 ## Make function for plotting
 
 cybrPlotZPrime <- function(zprimedf,
@@ -495,29 +685,6 @@ cybrPlotZScore <- function(zprimedf = CuSO4_wholegenomeBSA,
 }
 
 ################################################################################
-# Check number of loci per chromosome for samples to get window sizes
-
-checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
-  if(is.null(exceptchr) == FALSE){
-    includechr = FALSE
-  }
-  if(includechr != TRUE){
-    if(is.null(exceptchr)){
-      Dataset %>% filter(CHROM %in% includechr) -> Dataset
-    }else{
-      Dataset %>% filter(CHROM %in% exceptchr == FALSE | CHROM %in% includechr) -> Dataset
-    }
-  }
-
-  Dataset %>% group_by(CHROM) %>%
-    summarise(CHROM = CHROM, SNPs = length(unique(POS))) %>%
-    distinct() %>%
-    mutate(maxW = floor(SNPs/2)) -> tablecounts
-
-  return(tablecounts)
-}
-
-################################################################################
 # Adding the loci within a window instead of smoothing
 
 cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "PAllele~Bulk*Parent"){
@@ -561,3 +728,4 @@ cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "P
   return(Results)
 
 }
+

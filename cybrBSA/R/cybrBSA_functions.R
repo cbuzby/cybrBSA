@@ -131,12 +131,12 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
   df1int <- subset(df1, label == "Interaction")
 
   #Merge the other chromosomes in, so bind chr1 8 and chr8 1
-  df8int <- rbind(df8int, df1int[df1int$sectors == "VIII",])
-  df1int <- rbind(df1int, df8int[df8int$sectors == "I",])
+  # df8int <- rbind(df8int, df1int[df1int$sectors == "VIII",])
+  # df1int <- rbind(df1int, df8int[df8int$sectors == "I",])
 
   #Remove the data from those
-  df8int$y[df8int$sectors == "VIII"] <- 0
-  df1int$y[df1int$sectors == "I"] <- 0
+  # df8int$y[df8int$sectors == "VIII"] <- 0
+  # df1int$y[df1int$sectors == "I"] <- 0
 
   #REORDER THE CHROMOSOMES
   df8int$sectors <- factor(df8int$sectors, levels = as.character(as.roman(1:16)))

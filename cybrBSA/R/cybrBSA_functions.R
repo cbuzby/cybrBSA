@@ -83,7 +83,10 @@ cybr_callpeaks_chr3 <- function(dataset,
 
   return(output)
 }
+
+
 ################################################################################
+#Deprecated:
 cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL){
   dataset %>% mutate(summary = abs(summary)) -> dataset
   #Set cutoff
@@ -103,6 +106,44 @@ cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL){
     summarize(summary = max(summary)) %>%
     ungroup() %>%
     merge(dataset) -> output
+
+  if(is.null(param) == FALSE){
+    output %>% filter(label == param) -> output
+  }
+  return(output)
+}
+
+#New version:
+cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL, include_all = NULL){
+  dataset %>% mutate(summary = abs(summary)) %>% filter(label != "intercept",
+                                                        label != "Intercept",
+                                                        label != "(Intercept)",
+                                                        label != "NA") %>%
+    na.omit() -> dataset
+  #Set cutoff
+
+  Cutoff <- data.frame(X = NA)
+  if(is.null(threshold) == FALSE){
+    Cutoff$X <- threshold
+  }else{
+    dataset %>% filter(CHROM == "III") %>%
+      ungroup() %>%
+      reframe(X = max(summary)) -> Cutoff
+  }
+
+  #Find peaks
+  if(is.null(include_all)){
+    dataset %>%
+      filter(summary > Cutoff$X) %>%
+      group_by(CHROM, label) %>%
+      summarize(summary = max(summary)) %>%
+      ungroup() %>%
+      merge(dataset) -> output
+
+  }else{
+    dataset %>%
+      filter(summary > Cutoff$X) -> output
+  }
 
   if(is.null(param) == FALSE){
     output %>% filter(label == param) -> output
@@ -209,6 +250,86 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
   }
 
   circos.clear()
+}
+
+################################################################################
+#Plotting
+
+cybrPurple <- function(dataset,
+                       cutoff = "III",
+                       peakslist = NULL,
+                       includeFixedGenes = TRUE,
+                       peakcolor = "#24588A90",
+                       mylim = NULL){
+  #Make start and end points
+  ChromosomeScale <- data.frame(CHROM = factor(as.character(as.roman(1:16)),
+                                               levels = as.character(as.roman(1:16))),
+                                start = rep(1, 16),
+                                end = c(.23,.81,.32, 1.53, .58, .27, 1.09, .56, .44, .75, .67, 1.08, .92, .78, 1.09, .95)*1000000) %>%
+    pivot_longer(c(start, end), names_to = "delete", values_to = "POS") %>%
+    mutate(Summary = NA, Label = NA) %>% select(-delete)
+
+  #Make Fixed Genes
+  FG <- data.frame(Gene = c("Ura3", "MATalphastart", "MATalpha_end"),
+                   CHROM = factor(c("V", "III", "III"), levels = as.character(as.roman(1:16))),
+                   POS = c(116167, 198671,201177))
+
+  #Make factors for coloring
+  dataset$label <- factor(dataset$label, levels = c("Bulk", "Parent", "Interaction", "Rep", "Intercept"))
+
+  dataset %>% select(CHROM, POS, Summary = summary, Label = label) %>%
+    rbind(ChromosomeScale) %>%
+    ggplot(aes(x = POS, y = abs(Summary), color = Label, linetype = Label %in% c("Parent", "Rep"))) +
+    facet_grid(cols = vars(CHROM), scales = "free", space = "free") -> BasePlot
+
+  #Add fixed genes to plot
+  if(includeFixedGenes == TRUE){
+    BasePlot <- BasePlot + geom_vline(data = FG, aes(xintercept = POS), color = "gray", size = 2, linetype = "dashed")
+  }
+
+  #Add peaks to plot
+  if(is.null(peakslist) == FALSE){
+
+    peakslist$CHROM <- factor(peakslist$CHROM, levels = as.character(as.roman(1:16)))
+    BasePlot <- BasePlot + geom_vline(data = peakslist, aes(xintercept = POS), color = peakcolor, size = 2)
+  }
+
+
+  if(cutoff == "III"){
+    FinalPlot <- BasePlot +
+      geom_line(size = 1.2) +
+      #Cutoff
+      geom_hline(aes(yintercept = max(abs(dataset$summary[dataset$CHROM == "III"]))), linetype = "dashed") +
+      ylab("") + xlab("")+ ggtitle("")+
+      scale_color_manual(values = c("black",  "gray40","#7030A0", "lightpink", "red")) +
+      theme(legend.position = "none", axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+
+  }else if(is.null(cutoff)){
+    FinalPlot <- BasePlot +
+      geom_line(size = 1.2) +
+      ylab("") + xlab("")+ ggtitle("")+
+      # facet_grid(~CHROM, scales = "free", space = "free")  +
+      scale_color_manual(values = c("black",  "gray40","#7030A0", "lightpink", "red")) +
+      theme(legend.position = "none", axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+  }else{
+    cutoff <- as.numeric(cutoff)
+    FinalPlot <- BasePlot +
+      geom_line(size = 1.2) +
+      geom_hline(aes(yintercept = cutoff)) +
+      ylab("") + xlab("")+ ggtitle("")+
+      # facet_grid(~CHROM, scales = "free", space = "free")  +
+      scale_color_manual(values = c("black",  "gray40","#7030A0", "lightpink", "red")) +
+      theme(legend.position = "none", axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+  }
+
+  if(is.null(mylim) == FALSE){
+    FinalPlot <- FinalPlot + ylim(0, mylim)
+  }
+
+  return(FinalPlot)
 }
 
 ################################################################################

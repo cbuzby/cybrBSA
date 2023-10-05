@@ -1,10 +1,10 @@
-\name{cybrBSA_GLM_window}
+\name{dcybrBSA_GLM_window}
 \alias{cybrBSA_GLM_window}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Calculate z-scores of positional window for BSA}
 \description{
-Within a window of positions, add all read counts together to calculate effects}
+<Deprecated> Within a window of positions, add all read counts together to calculate effects}
 \usage{
 cybrBSA_GLM_window(lrP, chr = "II", windowsize = 5000,
                     formula = "PAllele~Bulk*Parent")

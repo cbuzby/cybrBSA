@@ -87,7 +87,7 @@ cybr_callpeaks_chr3 <- function(dataset,
 
 ################################################################################
 #Deprecated:
-cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL){
+dcybr_callpeaks <- function(dataset, param = NULL, threshold = NULL){
   dataset %>% mutate(summary = abs(summary)) -> dataset
   #Set cutoff
 
@@ -515,7 +515,7 @@ cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 ################################################################################
 ### Run GLM Function
 
-cybrBSA_GLM <-  function(lrP, chr = "II", windowsize = 100, formula = "PAllele ~ Bulk*Parent",
+dcybrBSA_GLM <-  function(lrP, chr = "II", windowsize = 100, formula = "PAllele ~ Bulk*Parent",
                          resultscol = c("Intercept", "Bulk", "Parent", "Interaction")){
 
   lrP <- subset(lrP, CHROM == chr)
@@ -549,7 +549,7 @@ cybrBSA_GLM <-  function(lrP, chr = "II", windowsize = 100, formula = "PAllele ~
 ################################################################################
 ### New Window Script Function
 
-cybrSmoothBSAWindows <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
+dcybrSmoothBSAWindows <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
 
   #extract parameters
   Results %>% select(-CHROM, -POS) %>% names() -> params
@@ -585,7 +585,7 @@ cybrSmoothBSAWindows <- function(Results, windowsize = 100, chr = unique(Results
 }
 
 
-cybrSmoothBSAWindows_b <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
+dcybrSmoothBSAWindows_b <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
 
   #extract parameters
   Results %>% select(-CHROM, -POS) %>% names() -> params
@@ -628,7 +628,7 @@ cybrSmoothBSAWindows_b <- function(Results, windowsize = 100, chr = unique(Resul
   }
 }
 
-cybrSmoothBSAWindows_Med <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
+dcybrSmoothBSAWindows_Med <- function(Results, windowsize = 100, chr = unique(Results$CHROM)[1]){
 
   #extract parameters
   Results %>% select(-CHROM, -POS) %>% names() -> params
@@ -698,7 +698,7 @@ checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
 ################################################################################
 ## Make function for plotting
 
-cybrPlotZPrime <- function(zprimedf,
+dcybrPlotZPrime <- function(zprimedf,
                            columns = c("Bulk_Zprime", "Parent_Zprime", "Interaction_Zprime"),
                            chromosomes = "All",
                            title = "Smoothed Z Scores",
@@ -755,7 +755,7 @@ cybrPlotZPrime <- function(zprimedf,
   return(finalplot)
 }
 
-cybrPlotZScore <- function(zprimedf = CuSO4_wholegenomeBSA,
+dcybrPlotZScore <- function(zprimedf = CuSO4_wholegenomeBSA,
                            column = "Bulk_Z",
                            chromosomes = "All",
                            title = "Z Scores by Position",
@@ -808,7 +808,7 @@ cybrPlotZScore <- function(zprimedf = CuSO4_wholegenomeBSA,
 ################################################################################
 # Adding the loci within a window instead of smoothing
 
-cybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "PAllele~Bulk*Parent"){
+dcybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "PAllele~Bulk*Parent"){
   require(stringr)
   if(identical(grep(" ", formula), integer(0)) == FALSE){return(print("Remove spaces from formula or use cybrBSA_GLM()"))}
 

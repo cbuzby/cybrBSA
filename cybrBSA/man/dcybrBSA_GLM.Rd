@@ -1,5 +1,5 @@
 \name{cybrBSA_GLM}
-\alias{cybrBSA_GLM}
+\alias{deprecated_cybrBSA_GLM}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Function to run logistic regression on BSA data
 %%  ~~function to do ... ~~

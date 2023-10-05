@@ -1,5 +1,5 @@
 \name{dcybrSmoothBSAWindows}
-\alias{cybrSmoothBSAWindows}
+\alias{deprecated_cybrSmoothBSAWindows}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Smooth Z-scores from logistic regression
 %%  ~~function to do ... ~~

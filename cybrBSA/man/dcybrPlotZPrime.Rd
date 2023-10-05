@@ -1,5 +1,5 @@
 \name{dcybrPlotZPrime}
-\alias{cybrPlotZPrime}
+\alias{deprecated_cybrPlotZPrime}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Plot Smoothed Z-scores
 %%  ~~function to do ... ~~

@@ -1,5 +1,5 @@
 \name{dcybrPlotZScore}
-\alias{cybrPlotZScore}
+\alias{deprecated_cybrPlotZScore}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Plot Z-scores
 %%  ~~function to do ... ~~

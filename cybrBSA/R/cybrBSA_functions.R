@@ -56,6 +56,89 @@ theme_cybr <- function(base_size = 11,
 ## FUNCTIONS - New
 ################################################################################
 
+#ADD SGD GENES
+cybr2_SGDGenes <- function(peaks, GeneList = SGD_Genes, mywindow = 1000){
+
+  peaks %>% select(CHROM, POS) -> peaks
+
+  #ChatGPT code adapted for filtering (what is this crossing function?)
+  filtered_df <- GeneList %>%
+    mutate(CHROM = gsub(pattern = "chr", replacement = "", x = Chromosome)) %>%
+    select(CHROM.x = CHROM, POS_Start, POS_End) %>%
+    crossing(peaks) %>%                               # Create all combinations of df and numbers
+    filter(CHROM.x == CHROM) %>%                      # Match category
+    rowwise() %>%
+    #filter(POS %in% seq((POS_Start - window), (POS_End + window))) %>%      # Check if number is within the range
+    #OR
+    filter(length(intersect(seq(POS - mywindow, POS + mywindow), seq(POS_Start, POS_End))) > 0) %>%
+
+    select(CHROM, POS, POS_Start, POS_End) %>%        # Remove redundant columns
+    distinct() %>%                                    # In case there are duplicate rows
+    merge(., GeneList)%>%
+    arrange(CHROM, POS) %>%
+    select(-POS) %>% distinct()
+
+  rm(peaks)
+
+  filtered_df %>%
+    return()
+}
+
+
+#MULTIPLE PEAKS
+
+cybr_multpeaks <- function(dataset,
+                           param = NULL,
+                           threshold = NULL,
+                           width = 1000,
+                           buffer = 200){
+  dataset %>% mutate(summary = abs(summary)) %>% filter(label != "intercept",
+                                                        label != "Intercept",
+                                                        label != "(Intercept)",
+                                                        label != "NA") %>%
+    mutate(Window = POS %/% width) %>%
+    mutate(Check = 1) %>%
+    na.omit() -> dataset
+
+
+  #Set cutoff
+
+  Cutoff <- data.frame(X = NA)
+  if(is.null(threshold) == FALSE){
+    Cutoff$X <- threshold
+  }else{
+    dataset %>% filter(CHROM == "III") %>%
+      ungroup() %>%
+      reframe(X = max(summary)) -> Cutoff
+  }
+
+  #Select only the parameter in question
+  if(is.null(param) == FALSE){
+    dataset %>% filter(label == param) -> dataset
+  }
+
+  for(i in buffer:(nrow(dataset)-buffer)){
+    if(dataset$Window[i] == dataset$Window[(i-(buffer - 1))]){
+      dataset$Check[(i-(buffer - 1)):(i+(buffer - 1))] <- FALSE
+    }else{
+      dataset$Check[(i-(buffer - 1)):((buffer - 1))] <- TRUE
+    }
+  }
+
+  #Find peaks
+  dataset %>%
+    filter(summary > Cutoff$X) %>%
+    group_by(CHROM, label, Window) %>%
+    summarize(summary = max(summary),
+              Check = Check) %>%
+    ungroup() %>%
+    merge(dataset) %>%
+    distinct() -> output
+
+
+  return(output)
+}
+
 #Make sure that the parameters to look at (Zscore, etc) are under "coefficient"
 cybr_callpeaks_chr3 <- function(dataset,
                                 statistic = "Effect",
@@ -362,7 +445,9 @@ cybrInputGATKTable <- function(rawData, yeast = TRUE){
     colnames(mydftotal) <- c(colnames(mydf), "AD", "GQ", "DP", "PL")
 
     mydftotal %>% separate(AD, c('AD.REF','AD.ALT'), extra='drop') %>%
-      separate(PL, c('PL.REF','PL.ALT'), extra='drop') -> mycdf
+      separate(PL, c('PL.REF','PL.ALT'), extra='drop') %>%
+      #Added 10/18/23:
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> mycdf
 
     mycdf
   }
@@ -849,4 +934,69 @@ dcybrBSA_GLM_window <-  function(lrP, chr = "II", windowsize = 5000, formula = "
   return(Results)
 
 }
+
+################################################################################
+# Additional functions that are probably in this now
+################################################################################
+
+glmfixed <- function(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW){
+
+  combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
+                             Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
+                             Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
+                             Reads = c(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW))
+
+  b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial,
+           data = combineddata)
+
+  summary(b)$coefficients[
+    ((length(summary(b)$coefficients)/4)*2+1):
+      ((length(summary(b)$coefficients)/4)*3)]
+}
+
+################################################################################
+glmfixed_rep <- function(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
+                         HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb){
+
+  combineddata <- data.frame(Bulk = factor(c("H","H","H", "H",
+                                             "L", "L","L", "L",
+                                             "H", "H","H", "H",
+                                             "L", "L","L", "L")),
+                             Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W",
+                                               "O", "O", "W", "W", "O", "O", "W", "W")),
+                             Allele = factor(c("O", "W", "O", "W",
+                                               "O", "W", "O", "W",
+                                               "O", "W", "O", "W",
+                                               "O", "W", "O", "W")),
+                             Rep = factor(c("A", "A", "A", "A","A", "A", "A", "A",
+                                            "B", "B", "B", "B","B", "B", "B", "B")),
+                             Reads = c(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
+                                       HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb))
+
+  b <- glm(Allele ~ Bulk*Parent+Rep, weights = Reads, family = binomial,
+           data = combineddata)
+
+  summary(b)$coefficients[
+    ((length(summary(b)$coefficients)/4)*2+1):
+      ((length(summary(b)$coefficients)/4)*3)]
+}
+
+cybr2_rollmean <- function(dataframe){
+  dataframe %>% pivot_longer(c(-CHROM, -POS), names_to = "label") %>% group_by(CHROM, label) %>% arrange(POS) %>%
+    summarize(POS = POS, CHROM = CHROM, SmoothCount = ceiling(frollmean(value, n = 100))) %>% na.omit() %>% pivot_wider(names_from = label,values_from = SmoothCount)
+}
+
+ChromosomeScale <- data.frame(CHROM = factor(as.character(as.roman(1:16)),
+                                             levels = as.character(as.roman(1:16))),
+                              start = rep(1, 16),
+                              end = c(.23,.81,.32, 1.53, .58, .27, 1.09, .56, .44, .75, .67, 1.08, .92, .78, 1.09, .95)*1000000) %>%
+  pivot_longer(c(start, end), names_to = "delete", values_to = "POS") %>%
+  mutate(Summary = NA, Label = NA) %>% select(-delete)
+
+ChromosomeScale2 <- data.frame(CHROM = factor(as.character(as.roman(1:16)),
+                                              levels = as.character(as.roman(1:16))),
+                               start = rep(1, 16),
+                               end = c(.23,.81,.32, 1.53, .58, .27, 1.09, .56, .44, .75, .67, 1.08, .92, .78, 1.09, .95)*1000000) %>%
+  pivot_longer(c(start, end), names_to = "delete", values_to = "POS") %>%
+  mutate(summary = 0, label = "Bulk") %>% select(-delete)
 

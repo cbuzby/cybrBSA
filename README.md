@@ -1,5 +1,5 @@
 # cybrBSA
-Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment
+R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment
 
 ### Convert VCF to GATK table
 

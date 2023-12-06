@@ -1,7 +1,9 @@
 # cybrBSA
-R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment
+R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment. 
 
 ### Convert VCF to GATK table
+
+PREPROCESSING. Output of this script is used as input for subsequent package.
 
 Bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
 

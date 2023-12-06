@@ -3,7 +3,7 @@ Package for analyzing sequencing data for multilevel Bulk Segregant Analysis exp
 
 ### Convert VCF to GATK table
 
-Script is in bash
+Bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
 
 ```{bash, eval = FALSE}
 module load gatk/4.2.0.0

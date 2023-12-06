@@ -21,214 +21,96 @@ gatk VariantsToTable \
 mydatatotest = "HGV.SortedCat.vcf.output.table"
 
 mydf <- cybrInputGATKTable(mydatatotest)
-head(mydf)
 
+#quality can be filtered but we've found that this is not useful for our dataset and have not used this step
 qualitydf <- cybrQualityFilter(mydf)
-head(qualitydf)
 
 parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
-head(parentSNPids)
 
-testmerge <- cybrIDAlleles(BSAdfstart = qualitydf, Parentdf = parentSNPids, yeast = TRUE) %>% na.omit()
-head(testmerge)
+rawdata_called <- cybrIDAlleles(BSAdfstart = qualitydf, Parentdf = parentSNPids, yeast = TRUE) %>% na.omit()
 
 ```
 
-### Piping
+#### Piping
 
 ```{r, warning=FALSE, message=FALSE}
 mydatatotest = "HGV.SortedCat.vcf.output.table"
 
 parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
 
-testmerge <- cybrInputGATKTable(mydatatotest) %>% 
-  cybrQualityFilter() %>% 
-  cybrIDAlleles(BSAdfstart = ., Parentdf = parentSNPids, yeast = TRUE) %>% 
-  na.omit()
+rawdata %>% 
+  merge(parentSNPids) %>% 
+  mutate(REFW = as.numeric(Type == "Wine"), REFO = as.numeric(Type == "Oak")) %>%
+  group_by(Dataset, CHROM, POS) %>%
+  mutate(Wine = max(REFW * as.numeric(AD.REF), REFO * as.numeric(AD.ALT)),
+         Oak = max(REFW * as.numeric(AD.ALT), REFO * as.numeric(AD.REF))) %>%
+  select(Pool, Dataset, POS, CHROM, Coverage, Wine, Oak) %>%
+  pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "Reads") -> rawdata_called
 
+```
+
+### Smooth data by median
+
+For dense, non-intercross data, use the data.table function frollapply to summarize within each experimental flask (ie unique bulk, parent, etc) within a sliding window. We use 200 SNPs of data as our window width, and align to the center so that the peak is likely at the specific gene that we are looking for.
+```
+rawdata_called %>% group_by(Pool, Dataset, CHROM, Allele) %>% arrange(POS) %>%
+  reframe(POS = POS, SmoothCount = ceiling(frollapply(Reads, n = 200, FUN = median, align = "center"))) -> rawdata_smoothed 
 ```
 
 ### Reformat data so that it has bulk etc included
 
-This part needs to be done manually to ensure that the formula matches the data. The two factors added here (Bulk and Parent) are then the inputs in the formula for the GLM.
+This part needs to be done for each experiment to ensure that the formula matches the data. The two factors added here (Bulk and Parent) are then the inputs in the formula for the GLM.
+
+This sample has a Dataset column which contains the annotations from the sequencing run. By using `mutate()`, we can create underscores between areas to separate, and then use dplyr's `separate()` to make separate columns for each. Once these columns are separate, the data is ready for the `glm()` function.
 
 ```{r}
-unique(testmerge$Dataset)
-
-testmerge$Bulk <- NA
-testmerge$Bulk[testmerge$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" | 
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq"] <- "Dilute"
-
-testmerge$Bulk[testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq" | 
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "Fluconazole"
-
-testmerge$Parent <- NA
-testmerge$Parent[testmerge$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" | 
-              testmerge$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq"] <- "OakI"
-
-testmerge$Parent[testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" |
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq" | 
-              testmerge$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "WineI"
-
-testmerge$Parent <- factor(testmerge$Parent)
-testmerge$Bulk <- factor(testmerge$Bulk)
-testmerge$ReadCount <- as.numeric(testmerge$ReadCount)
-
-head(testmerge)
-
-```
-```{r, warning=FALSE, message=FALSE}
-
-#Running the entire genome in a loop instead of just chr II
-wholegenomeBSA <- foreach(i=unique(testmerge$CHROM), .combine=rbind) %dopar%{
-  cybrBSA_GLM(testmerge, chr = i) %>% cybrSmoothBSAWindows()
-}
-
+# Pick out the specific groups of the dataset
+rawdata_smoothed %>% 
+    mutate(Dataset = gsub("CuSO4_CSSI_", "", Dataset)) %>%
+    mutate(Dataset = gsub("Unselected", "Unselected_", Dataset)) %>%
+    mutate(Dataset = gsub("Selected", "Selected_", Dataset)) %>%
+  separate(Dataset, into = c("Bulk", "Parent"), sep = "_") %>% 
+  mutate_if(is.character, as.factor) -> rawdata_glm_prep
 ```
 
-### Plot
-
-```{r}
-cybrPlotZPrime(CuSO4_wholegenomeBSA, columns = c("Bulk_Zprime"))
-
-cybrPlotZScore(CuSO4_wholegenomeBSA)
-
-cybrPlotZPrime(wholegenomeBSA, chromosomes = ChromKey$chromosomes[2:16])
-
-cybrPlotZScore(wholegenomeBSA)
+### Calculate GLM of rolling data
 
 ```
+#Test once using a position that has enough levels to run the glm
+testdata <- rawdata_glm_prep %>% na.omit() %>% filter(CHROM == "II", POS == 65975) %>% arrange(Bulk, Parent)
 
-# Updated R Pipeline
+#Does it have enough levels, ie at least two different values for each element in the formula?
+table(testdata$Bulk, testdata$Parent)
 
-### Analysis
-***
-#### Combine oak and wine parental alleles, and define the bulks, parents, and replicates
-```
-setwd("../../../GitHub/Sequencing/Analysis/")
+#Define what will be used in the function
+formula = "Allele ~ Bulk * Parent"
 
-parentSNPids <- cybrConvertParentalAlleles(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"), Truncate = TRUE)
+#Run the test glm
+testglm <- glm(formula = formula, family = "binomial", data = testdata, weights = SmoothCount)
 
-parentSNPids %>% group_by(CHROM, POS) %>% summarize(Type = Type, Unique = length(unique(Type))) %>% filter(Unique == 1) -> pSNPs
+#print to view
+testglm
 
-#CHANGE THIS
-mydatatotest = "Data/HKTFTDRX2.SortedCat.vcf.output.table"
-
-FilteredData <- cybrInputGATKTable(mydatatotest) %>% 
-  cybrQualityFilter() %>% 
-  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
-  na.omit()
-
-#Using Gsub for this
-gsub(FilteredData$Dataset, "HKTFTDRX2_n01_", "") #CHANGE THIS
-
-FilteredData %>% mutate(DShort = gsub("HKTFTDRX2_n01_", "", Dataset),
-                       DS = gsub(".fastq", "", DShort)) %>% select(-Dataset, -DShort) -> tempFilteredData
-
-tempFilteredData$Bulk <- NA
-tempFilteredData$Parent <- NA
-tempFilteredData$Rep <- NA
-
-tempFilteredData$Bulk[grep("C", tempFilteredData$DS)] <- "CuSO4" #CHANGE THIS
-tempFilteredData$Bulk[grep("D", tempFilteredData$DS)] <- "Dilute"
-
-tempFilteredData$Rep[grep("a", tempFilteredData$DS)] <- "A"
-tempFilteredData$Rep[grep("b", tempFilteredData$DS)] <- "B"
-
-tempFilteredData$Parent[grep("O", tempFilteredData$DS)] <- "Oak"
-tempFilteredData$Parent[grep("W", tempFilteredData$DS)] <- "Wine"
-
-tempFilteredData$ReadCount <- as.numeric(tempFilteredData$ReadCount)
-  
-# #THIS IGNORES REPLICATES
-tempFilteredData %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
- pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> cybr2Data
- ```
- 
-#### Check log alleles per flask and coverage across sequencing run
-```
-cybr2Data %>% pivot_longer(c(-CHROM, -POS), names_to = c("Bulk", "Parent", "Rep", "Allele"), names_sep = "_") %>%
-  pivot_wider(names_from = Allele, values_from = value) %>% mutate(Coverage = Wine + Oak, logWineOak = log(Wine/Oak)) -> RawCountSummary
-```
- 
-#### Smooth data by rolling mean or median
-
-```
-#Use rolling average of 100 SNPs, finding the mean
-cybr2Data %>% cybr2_rollmean() -> rollmeanData
-
-#Find the rolling median or change n instead
-cybr2Data %>% pivot_longer(c(-CHROM, -POS), names_to = "label") %>% 
-  group_by(CHROM, label) %>% arrange(POS) %>% 
-  summarize(POS = POS, 
-            CHROM = CHROM, 
-            SmoothCount = ceiling(frollapply(value, n = 100, FUN = median))) %>% #CHANGE THIS LINE
-  na.omit() %>% 
-  pivot_wider(names_from = label,values_from = SmoothCount) -> rollData
+#actual outputs
+summary(testglm)$coefficients
 ```
 
-#### Caluclate GLM of rolling data
+### Parallelize using dplyr
 
+This uses the glm_cb2_short() function to take in a list of columns which should be used in the formula and returns the Z score column of the glm summary coefficients
 ```
-#Change for different datasets
-mydata <- rollData
-
-#Run GLM - options are glmfixed_rep(), glmfixed_rep3(), and glmfixed()
-#IF NOT USING REPS, change 1:5 to 1:4, and remove "Rep" from labels
-mydata %>% group_by(CHROM, POS) %>% 
-  summarise(summary = glmfixed_rep(HOOa = CuSO4_Oak_A_Oak, 
-                           HOWa = CuSO4_Oak_A_Wine, 
-                           HWOa = CuSO4_Wine_A_Oak,
-                           HWWa = CuSO4_Wine_A_Wine,
-                           LOOa = Dilute_Oak_A_Oak,
-                           LOWa = Dilute_Oak_A_Wine,
-                           LWOa = Dilute_Wine_A_Oak, 
-                           LWWa = Dilute_Wine_A_Wine,
-                           
-                           HOOb = CuSO4_Oak_B_Oak, 
-                           HOWb = CuSO4_Oak_B_Wine, 
-                           HWOb = CuSO4_Wine_B_Oak,
-                           HWWb = CuSO4_Wine_B_Wine,
-                           LOOb = Dilute_Oak_B_Oak,
-                           LOWb = Dilute_Oak_B_Wine,
-                           LWOb = Dilute_Wine_B_Oak, 
-                           LWWb = Dilute_Wine_B_Wine)[1:5],
-                                                   label = c("intercept", "Bulk", "Parent", "Rep", "Interaction")) -> GLMdata
-```
-
-### Visualizing
-***
-#### Single GLM Plot for this Data for reference
-
-```
-GLMdata %>% 
-  filter(label != "intercept", CHROM != "I", CHROM != "M") %>% 
-  
-  ggplot(aes(x = POS, y = summary, color = label)) + geom_line() + 
-  
-  facet_grid(~CHROM, scales = "free", space = "free") +
-  theme(legend.position = "bottom", axis.text.x=element_blank(),
-            axis.ticks.x=element_blank()) + ggtitle("GLM of Data")
-```
-
-#### Log Odds of Alleles Plot for reference
-
-```
-RawCountSummary %>% 
-  filter(CHROM != "I", CHROM != "M") %>% 
-  
-  ggplot(aes(x = POS, y = logWineOak, shape = paste(Bulk, Parent, Rep, sep = "_"), color = Bulk)) + 
-  geom_point(alpha = 0.3) + 
-  
-  facet_grid(~CHROM, scales = "free", space = "free") +
-  theme(legend.position = "bottom", axis.text.x=element_blank(),
-            axis.ticks.x=element_blank()) +
-  scale_color_manual(values = c("Violet", "Black"))
+# Run full dataset
+rawdata_glm_prep %>% na.omit() %>% 
+  filter(CHROM %in% c("M", "I") == FALSE) %>%
+  group_by(CHROM, POS) %>%
+  mutate_if(is.character, as.factor) %>%
+  summarize(Summary = glm_cb2_short(Allele = Allele,
+                             Bulk = Bulk,
+                             Parent = Parent,
+                             #Rep = Rep,
+                             W = SmoothCount,
+                             formula = "Allele ~ Bulk * Parent",
+                             outputlength = 4),
+            #MAKE SURE THIS IS THE SAME LENGTH AS OUTPUT LENGTH
+            Factor = (c("Intercept", "Bulk", "Parent", "Interaction"))) -> processed_glm_all
 ```

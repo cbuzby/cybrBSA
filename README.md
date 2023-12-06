@@ -15,7 +15,9 @@ gatk VariantsToTable \
      -O ${myfile}.output.table
 
 ```
-### Running Pipeline of Functions
+### Variant Table Processing
+
+#### Processing by Individual Functions
 
 ```{r, eval = FALSE, warning=FALSE, message=FALSE}
 mydatatotest = "HGV.SortedCat.vcf.output.table"
@@ -31,7 +33,7 @@ rawdata_called <- cybrIDAlleles(BSAdfstart = qualitydf, Parentdf = parentSNPids,
 
 ```
 
-#### Piping
+#### Processing by Piping
 
 ```{r, warning=FALSE, message=FALSE}
 mydatatotest = "HGV.SortedCat.vcf.output.table"
@@ -51,13 +53,13 @@ rawdata %>%
 
 ### Smooth data by median
 
-For dense, non-intercross data, use the data.table function frollapply to summarize within each experimental flask (ie unique bulk, parent, etc) within a sliding window. We use 200 SNPs of data as our window width, and align to the center so that the peak is likely at the specific gene that we are looking for.
+For dense, non-intercross data, use the data.table function frollapply to summarize within each experimental flask (ie unique bulk, parent, etc) within a sliding window. We use 200 SNPs of data as our window width, and align to the center so that the peak is likely at the specific gene that we are looking for. Smoothing takes advantage of linkage within the genome to even out sequencing noise.
 ```
 rawdata_called %>% group_by(Pool, Dataset, CHROM, Allele) %>% arrange(POS) %>%
   reframe(POS = POS, SmoothCount = ceiling(frollapply(Reads, n = 200, FUN = median, align = "center"))) -> rawdata_smoothed 
 ```
 
-### Reformat data so that it has bulk etc included
+### Separate out columns to run the GLM
 
 This part needs to be done for each experiment to ensure that the formula matches the data. The two factors added here (Bulk and Parent) are then the inputs in the formula for the GLM.
 
@@ -74,6 +76,8 @@ rawdata_smoothed %>%
 ```
 
 ### Calculate GLM of rolling data
+
+#### Test with a single locus to identify output length
 
 ```
 #Test once using a position that has enough levels to run the glm
@@ -95,7 +99,7 @@ testglm
 summary(testglm)$coefficients
 ```
 
-### Parallelize using dplyr
+#### Parallelize using dplyr and glm_cb2_short()
 
 This uses the glm_cb2_short() function to take in a list of columns which should be used in the formula and returns the Z score column of the glm summary coefficients
 ```
@@ -113,4 +117,13 @@ rawdata_glm_prep %>% na.omit() %>%
                              outputlength = 4),
             #MAKE SURE THIS IS THE SAME LENGTH AS OUTPUT LENGTH
             Factor = (c("Intercept", "Bulk", "Parent", "Interaction"))) -> processed_glm_all
+```
+
+### Visualize Data
+
+Data can be plotted in ggplot() by faceting by chromosome (CHROM) so that positions do not overlap from different chromosomes. 
+```
+processed_glm_all %>% 
+  ggplot(aes(x = POS, y = abs(Summary), color = Factor)) + geom_line() +
+  facet_grid(~CHROM, space = "free", scales = "free") + ggtitle("BSA Bulk Z Scores")
 ```

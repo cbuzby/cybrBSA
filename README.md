@@ -39,7 +39,7 @@ rawdata_called <- cybrIDAlleles(BSAdfstart = qualitydf, Parentdf = parentSNPids,
 mydatatotest = "HGV.SortedCat.vcf.output.table"
 
 cybrInputGATKTable(mydatatotest) %>% mutate(Coverage = as.numeric(AD.REF) + as.numeric(AD.ALT)) %>%
-  select(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) %>% mutate(Pool = RawFiles$Pool[i])-> rawdata
+  select(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) -> rawdata
 
 parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
 

@@ -6,9 +6,8 @@ library(reshape2)
 library(cowplot)
 library(dplyr)
 require(circlize)
-
-library(foreach) #no longer used
-library(doParallel) #no longer used
+library(foreach)
+library(doParallel)
 
 
 ################################################################################

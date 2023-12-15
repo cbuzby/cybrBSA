@@ -1039,3 +1039,243 @@ ChromosomeScale2 <- data.frame(CHROM = factor(as.character(as.roman(1:16)),
   pivot_longer(c(start, end), names_to = "delete", values_to = "POS") %>%
   mutate(summary = 0, label = "Bulk") %>% select(-delete)
 
+############################ PERMUTATIONS ######################################
+
+# No replicates, fix CHROM, Parent
+cybrPermute_byCHRParent <- function(dataset){
+  start.time <- Sys.time()
+
+  print("Make sure that dilute bulk is labeled D")
+
+  dataset %>%
+    distinct() %>% ungroup() %>%
+    group_by(CHROM, POS, Allele,
+             Bulk,
+             #Rep, #might not have these
+             Parent) %>%
+    summarize(culprits = length((SmoothCount))) %>%
+    merge(dataset) %>%
+    filter(culprits == 1) %>%
+    ungroup() %>%
+    distinct() %>% #THIS IS IMPORTANT
+    pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+
+  #these are now all of the ones that can be used to permute
+  newnewtest %>% filter(Bulk == "D") %>% select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(CHROM, Parent) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine, POS = POS,
+              POS2 = sample(POS)) %>%
+    mutate(Bulk = "A") -> shuffled_DiluteA
+
+  newnewtest %>% filter(Bulk == "D") %>% select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(CHROM, Parent) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine, POS = POS,
+              POS2 = sample(POS)) %>%
+    mutate(Bulk = "B") -> shuffled_DiluteB
+
+  rbind(shuffled_DiluteA, shuffled_DiluteB) %>% pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "SmoothCount") -> shuffletoglm
+
+  #Trying this again
+
+  shuffletoglm %>% na.omit() %>%
+    #Original Script
+    group_by(CHROM, POS) %>%
+    mutate_if(is.character, as.factor) %>%
+    summarize(Summary = glm_cb2_short(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      #Rep = Rep,
+                                      W = SmoothCount,
+                                      formula = "Allele ~ Bulk * Parent",
+                                      outputlength = 4),
+              Factor = (c("Intercept", "Bulk", "Parent", "Interaction"))) -> glmresult
+  end.time = Sys.time()
+  print(end.time - start.time)
+  return(glmresult)
+}
+
+# No replicates, fix Parent
+cybrPermute_byParent <- function(dataset){
+  start.time <- Sys.time()
+
+  print("Make sure that dilute bulk is labeled D")
+
+  dataset %>%
+    distinct() %>% ungroup() %>%
+    group_by(CHROM, POS, Allele,
+             Bulk,
+             #Rep, #might not have these
+             Parent) %>%
+    summarize(culprits = length((SmoothCount))) %>%
+    merge(dataset) %>%
+    filter(culprits == 1) %>%
+    ungroup() %>%
+    distinct() %>% #THIS IS IMPORTANT
+    pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+
+  #these are now all of the ones that can be used to permute
+  newnewtest %>% filter(Bulk == "D",
+                        CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+    select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = sample(Loc)) %>%
+    mutate(Bulk = "A") -> shuffled_DiluteA2
+
+  newnewtest %>% filter(Bulk == "D",
+                        CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+    select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = sample(Loc)) %>%
+    mutate(Bulk = "B") -> shuffled_DiluteB2
+
+  rbind(shuffled_DiluteA2, shuffled_DiluteB2) %>% pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "SmoothCount") -> shuffletoglm2
+
+  #Trying this again
+
+  shuffletoglm2 %>% na.omit() %>%
+    #Original Script
+    group_by(Loc) %>%
+    mutate_if(is.character, as.factor) %>%
+    summarize(Summary = glm_cb2_short(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      #Rep = Rep,
+                                      W = SmoothCount,
+                                      formula = "Allele ~ Bulk * Parent",
+                                      outputlength = 4),
+              Factor = (c("Intercept", "Bulk", "Parent", "Interaction"))) -> glmresult
+  end.time = Sys.time()
+  print(end.time - start.time)
+  return(glmresult)
+}
+
+# Replicates, fix CHROM, Parent
+cybrPermute_byCHRParent_Rep <- function(dataset){
+  start.time <- Sys.time()
+
+  print("Make sure that dilute bulk is labeled D")
+
+  dataset %>%
+    distinct() %>% ungroup() %>%
+    group_by(CHROM, POS, Allele,
+             Bulk,
+             Rep, #might not have these
+             Parent) %>%
+    summarize(culprits = length((SmoothCount))) %>%
+    merge(dataset) %>%
+    filter(culprits == 1) %>%
+    ungroup() %>%
+    distinct() %>% #THIS IS IMPORTANT
+    pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+
+  #these are now all of the ones that can be used to permute
+  newnewtest %>% filter(Bulk == "D") %>% select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(CHROM, Parent) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine, POS = POS,
+              POS2 = sample(POS)) %>%
+    group_by(CHROM, Parent, POS2) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine,
+              POS = POS2,
+              Rep = sample(c("a", "b"))) %>%
+    mutate(Bulk = "A") -> shuffled_DiluteA
+
+  newnewtest %>% filter(Bulk == "D") %>% select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(CHROM, Parent) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine, POS = POS,
+              POS2 = sample(POS)) %>%
+    group_by(CHROM, Parent, POS2) %>%
+    summarize(CHROM = CHROM, Parent = Parent, Oak = Oak, Wine = Wine,
+              POS = POS2,
+              Rep = sample(c("a", "b"))) %>%
+    mutate(Bulk = "B") -> shuffled_DiluteB
+
+  rbind(shuffled_DiluteA, shuffled_DiluteB) %>% pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "SmoothCount") -> shuffletoglm
+
+  #Trying this again
+
+  shuffletoglm %>% na.omit() %>%
+    #Original Script
+    group_by(CHROM, POS) %>%
+    mutate_if(is.character, as.factor) %>%
+    summarize(Summary = glm_cb2_short(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      Rep = Rep,
+                                      W = SmoothCount,
+                                      formula = "Allele ~ Bulk * Parent + Rep",
+                                      numgroups = 16, outputlength = 5),
+              Factor = (c("Intercept", "Bulk", "Parent", "Rep", "Interaction"))) -> glmresult
+  end.time = Sys.time()
+  print(end.time - start.time)
+  return(glmresult)
+}
+
+# Replicates, fix Parent
+cybrPermute_byParent_Rep <- function(dataset){
+  start.time <- Sys.time()
+
+  print("Make sure that dilute bulk is labeled D")
+
+  dataset %>%
+    distinct() %>% ungroup() %>%
+    group_by(CHROM, POS, Allele,
+             Bulk,
+             Rep, #might not have these
+             Parent) %>%
+    summarize(culprits = length((SmoothCount))) %>%
+    merge(dataset) %>%
+    filter(culprits == 1) %>%
+    ungroup() %>%
+    distinct() %>% #THIS IS IMPORTANT
+    pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+
+  #these are now all of the ones that can be used to permute
+  newnewtest %>% filter(Bulk == "D",
+                        CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+    select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = sample(Loc)) %>%
+    group_by(Parent, Loc) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = Loc,
+              Rep = sample(c("a", "b"))) %>%
+    mutate(Bulk = "A") -> shuffled_DiluteA2
+
+  newnewtest %>% filter(Bulk == "D",
+                        CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+    select(CHROM, POS, Parent, Oak, Wine) %>%
+    group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = sample(Loc)) %>%
+    group_by(Parent, Loc) %>%
+    summarize(Parent = Parent, Oak = Oak, Wine = Wine,
+              Loc = Loc,
+              Rep = sample(c("a", "b"))) %>%
+    mutate(Bulk = "B") -> shuffled_DiluteB2
+
+  rbind(shuffled_DiluteA2, shuffled_DiluteB2) %>% pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "SmoothCount") -> shuffletoglm2
+
+  #Trying this again
+
+  shuffletoglm2 %>% na.omit() %>%
+    #Original Script
+    group_by(Loc) %>%
+    mutate_if(is.character, as.factor) %>%
+    summarize(Summary = glm_cb2_short(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      Rep = Rep,
+                                      W = SmoothCount,
+                                      formula = "Allele ~ Bulk * Parent + Rep",
+                                      numgroups = 16, outputlength = 5),
+              Factor = (c("Intercept", "Bulk", "Parent", "Rep", "Interaction"))) -> glmresult2
+
+  end.time = Sys.time()
+  print(end.time - start.time)
+
+  return(glmresult2)
+}
+

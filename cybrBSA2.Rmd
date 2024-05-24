@@ -1,0 +1,753 @@
+---
+title: "cybrBSA2"
+author: "Cassandra Buzby"
+date: "12/28/2022"
+output: html_document
+---
+
+Making the BSA scripts more efficient with functions to actually pipe with dplyr
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load packages
+library(ggplot2)
+library(tidyr)
+library(reshape2)
+library(cowplot)
+library(data.table)
+
+library(dplyr)
+library(foreach)
+library(doParallel)
+library(RColorBrewer)
+
+library(cybrBSA)
+
+ggplot2::theme_set(theme_light())
+
+glmfixed <- function(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW){
+  
+  combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
+                           Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
+                           Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
+                           Reads = c(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW))
+
+  b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial, 
+              data = combineddata)
+
+  summary(b)$coefficients[
+    ((length(summary(b)$coefficients)/4)*2+1):
+      ((length(summary(b)$coefficients)/4)*3)]
+}
+
+```
+
+Making a function to pipe
+
+```{r}
+newmean <- function(x){mean(x)}
+
+newdata <- 1:20
+
+newdata %>% newmean
+newdata %>% mean
+
+newdf <- data.frame(num = newdata, 
+                    cat = sample(c("X", "Y"), size = 20, replace = TRUE),
+                    dog = sample(c("D", "O", "G"), size = 20, replace = TRUE))
+
+newdf %>% group_by(cat) %>% summarise(catmean = mean(num))
+newdf %>% group_by(cat) %>% summarise(catmean = newmean(num))
+
+newdf %>% group_by(cat, dog) %>% summarise(catmean = mean(num))
+newdf %>% group_by(cat,dog) %>% summarise(catmean = newmean(num))
+
+```
+
+Trying multiple things with each
+
+```{r}
+sampledata <- data.frame(POS = rep(1:10, times = 10),
+                         CHROM = rep(1:5, each = 20),
+                         # Bulk = sample(c("High", "Low"), size = 100, replace = TRUE),
+                         # Parent = sample(c("Oak", "Wine"), size = 100, replace = TRUE),
+                         H_O = sample(1:1000, replace = TRUE, size = 100),
+                         H_W = sample(1:1000, replace = TRUE, size = 100),
+                         L_O =sample(1:1000, replace = TRUE, size = 100),
+                         L_W = sample(1:1000, replace = TRUE, size = 100))
+
+samplefunction <- function(X){
+  return(mean(X))
+}
+
+samplefunction2 <- function(X, Y){
+  mean(X)/mean(Y)
+}
+
+sampledata %>% group_by(CHROM, POS) %>% summarise(test = samplefunction(L_W))
+
+sampledata %>% group_by(CHROM, POS) %>% summarise(test = samplefunction2(L_W, L_O))
+
+sampledata[1,] %>% summarise(regressionfuncton(H_O, H_W, L_O, L_W))
+
+combineddata <- data.frame(Bulk = factor(c("H", "H", "L", "L")),
+                           Count = factor(c("O", "W", "O", "W")),
+                           Reads = c(sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O))
+
+regressionbasic <- function(HO,HW,LO,LW){
+  a <- glm(Count ~ Bulk, weights = Reads, family = binomial, 
+              data = data.frame(Bulk = factor(c("H", "H", "L", "L")),
+                           Count = factor(c("O", "W", "O", "W")),
+                           Reads = c(HO,HW,LO,LW))
+        )
+  return(a$coefficients)
+}
+
+sampledata %>% group_by(CHROM, POS) %>% summarise(glm_int = regressionbasic(H_O, H_W, L_O, L_W)[1],
+                                                  glm_Bulk = regressionbasic(H_O, H_W, L_O, L_W)[2])
+
+```
+
+Okay so now let's make it so that there are two factors AND counts
+
+```{r}
+combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
+                           Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
+                           Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
+                           Reads = c(sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O,
+                                     sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O,sampledata[1,]$H_O))
+
+b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial, 
+              data = combineddata)
+
+summary(b)$coefficients[
+  ((length(summary(b)$coefficients)/4)*2+1):
+    ((length(summary(b)$coefficients)/4)*3)]
+
+b$coefficients
+
+```
+
+Make it a function
+
+```{r}
+glmfixed <- function(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW){
+  
+  combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
+                           Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
+                           Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
+                           Reads = c(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW))
+
+  b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial, 
+              data = combineddata)
+
+  summary(b)$coefficients[
+    ((length(summary(b)$coefficients)/4)*2+1):
+      ((length(summary(b)$coefficients)/4)*3)]
+}
+
+sampledata2 <- data.frame(POS = rep(1:10, times = 10),
+                         CHROM = rep(1:5, each = 20),
+                         H_O_O = sample(1:1000, replace = TRUE, size = 100),
+                         H_O_W = sample(1:1000, replace = TRUE, size = 100),
+                         H_W_O = sample(1:1000, replace = TRUE, size = 100),
+                         H_W_W = sample(1:1000, replace = TRUE, size = 100),
+                         L_O_O = sample(1:1000, replace = TRUE, size = 100),
+                         L_O_W = sample(1:1000, replace = TRUE, size = 100),
+                         L_W_O = sample(1:1000, replace = TRUE, size = 100),
+                         L_W_W = sample(1:1000, replace = TRUE, size = 100))
+
+sampledata2 %>% group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) 
+
+```
+
+Testing on real data
+
+```{r}
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+parentSNPids <- cybrConvertParentalAlleles(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"), Truncate = TRUE)
+
+#head(parentSNPids)
+
+parentSNPids %>% group_by(CHROM, POS) %>% summarize(Type = Type, Unique = length(unique(Type))) %>% filter(Unique == 1) -> pSNPs
+
+mydatatotest = "HGV.SortedCat.vcf.output.table"
+
+CSSI_Fluc <- cybrInputGATKTable(mydatatotest) %>% 
+  cybrQualityFilter() %>% 
+  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
+  na.omit()
+
+CSSI_Fluc$Bulk <- NA
+CSSI_Fluc$Bulk[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" | 
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq"] <- "Dilute"
+
+CSSI_Fluc$Bulk[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq" | 
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "Fluconazole"
+
+CSSI_Fluc$Parent <- NA
+CSSI_Fluc$Parent[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" | 
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq"] <- "OakI"
+
+CSSI_Fluc$Parent[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq" | 
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "WineI"
+
+CSSI_Fluc$Rep <- NA
+CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq"] <- "B"
+
+CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" | 
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "C"
+
+CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq" |
+              CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq" ] <- "D"
+
+CSSI_Fluc$ReadCount <- as.numeric(CSSI_Fluc$ReadCount)
+  
+# #THIS IGNORES REPLICATES
+CSSI_Fluc %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+ pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_Fluc_cybr2
+
+saveRDS(object = CSSI_Fluc_cybr2, file = "CSSI_Fluc_cybr2.rds")
+
+```
+
+```{r, eval = FALSE}
+CSSI_Fluc_cybr2 <- readRDS("CSSI_Fluc_cybr2.rds")
+
+CSSI_Fluc_cybr2 %>% mutate(H_O_O = Fluconazole_OakI_B_Oak, #Fluconazole_OakI_C_Oak, Fluconazole_OakI_D_Oak,
+                           H_O_W = Fluconazole_OakI_B_Wine, #Fluconazole_OakI_C_Wine, Fluconazole_OakI_D_Wine,
+                           H_W_O = Fluconazole_WineI_C_Oak,
+                           H_W_W = Fluconazole_WineI_C_Wine,
+                           L_O_O = Dilute_OakI_B_Oak,
+                           L_O_W = Dilute_OakI_B_Wine,
+                           L_W_O = Dilute_WineI_B_Oak, #Dilute_WineI_C_Oak,Dilute_WineI_D_Oak,
+                           L_W_W = Dilute_WineI_B_Wine) %>% #, Dilute_WineI_C_Wine, Dilute_WineI_D_Wine)
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> testCSSIFluc_cybr2
+
+saveRDS(object = testCSSIFluc_cybr2, file = "testCSSIFluc_cybr2.rds")
+
+```
+
+```{r}
+testCSSIFluc_cybr2 <- readRDS("testCSSIFluc_cybr2.rds")
+
+ggplot(testCSSIFluc_cybr2, aes(x = POS, y = summary, color = label)) + geom_line() + facet_grid(~CHROM, scales = "free")
+```
+How to do smoothing?
+
+```{r}
+testCSSIFluc_cybr2 <- readRDS("testCSSIFluc_cybr2.rds")
+
+testCSSIFluc_cybr2 %>% filter(CHROM == "I") %>% pivot_wider(names_from = label, values_from = summary) %>% select(-intercept) -> testfluc
+
+testwindow <- cybrSmoothBSAWindows(testfluc)
+```
+```{r, eval = FALSE}
+library(data.table)
+install.packages("zoo")
+
+get.mav <- function(bp,n=2){
+  require(zoo)
+  if(is.na(bp[1])) bp[1] <- mean(bp,na.rm=TRUE)
+  bp <- na.locf(bp,na.rm=FALSE)
+  if(length(bp)<n) return(bp)
+  c(bp[1:(n-1)],rollapply(bp,width=n,mean,align="right"))  
+}
+
+setDT(testfluc)     # converts test to a data.table in place
+setkey(testfluc,CHROM,POS)
+
+testfluc[,BLOOD_PRESSURE_UPDATED:=as.numeric(get.mav(Bulk,100))]
+testfluc
+```
+
+```{r}
+CSSIFluc_cybr2 <- readRDS("testCSSIFluc_cybr2.rds")
+
+CSSIFluc_cybr2 %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSIFluc_Window100
+
+CSSIFluc_Window100 %>% ggplot(aes(x = POS, y = SmoothZ, color = label)) + geom_line() + facet_grid(~CHROM, scales = "free")
+```
+
+## Running this with all samples
+
+```{r, eval = FALSE}
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+cybrConvertParentalAlleles(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"), Truncate = TRUE) %>% group_by(CHROM, POS) %>% summarize(Type = Type, Unique = length(unique(Type))) %>% filter(Unique == 1) -> pSNPs
+
+################################################################################
+# mydatatotest = "HGV.SortedCat.vcf.output.table"
+# CSSI_Fluc <- cybrInputGATKTable(mydatatotest) %>% 
+#   cybrQualityFilter() %>% 
+#   cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
+#   na.omit()
+# 
+# CSSI_Fluc$Bulk <- NA
+# CSSI_Fluc$Bulk[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" | 
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq"] <- "Dilute"
+# 
+# CSSI_Fluc$Bulk[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq" | 
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "Fluconazole"
+# 
+# CSSI_Fluc$Parent <- NA
+# CSSI_Fluc$Parent[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" | 
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq"] <- "OakI"
+# 
+# CSSI_Fluc$Parent[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq" | 
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "WineI"
+# 
+# CSSI_Fluc$Rep <- NA
+# CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Dilute_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_B.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_B.fastq"] <- "B"
+# 
+# CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_C.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_C.fastq" | 
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Fluc_C.fastq"] <- "C"
+# 
+# CSSI_Fluc$Rep[CSSI_Fluc$Dataset == "HGVMVDRX2_n01_OakI_Fluc_D.fastq" |
+#               CSSI_Fluc$Dataset == "HGVMVDRX2_n01_WineI_Dilute_D.fastq" ] <- "D"
+# 
+# CSSI_Fluc$ReadCount <- as.numeric(CSSI_Fluc$ReadCount)
+#   
+# CSSI_Fluc %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+#  pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_Fluc_cybr2
+# 
+# saveRDS(object = CSSI_Fluc_cybr2, file = "CSSI_Fluc_cybr2.rds")
+
+################################################################################
+
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+mydatatotest = "Data\\TelTrimmed_mergedCuSO4.REF.SortedCat.vcf.output.table"
+CSSI_CuSO4 <- cybrInputGATKTable(mydatatotest) %>%
+  cybrQualityFilter() %>%
+  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>%
+  na.omit()
+
+CSSI_CuSO4$Bulk <- NA
+CSSI_CuSO4$Bulk[CSSI_CuSO4$Dataset == "SelectedA" |
+              CSSI_CuSO4$Dataset == "SelectedC"] <- "CuSO4"
+
+CSSI_CuSO4$Bulk[CSSI_CuSO4$Dataset == "UnselectedA" |
+              CSSI_CuSO4$Dataset == "UnselectedC"] <- "Dilute"
+
+CSSI_CuSO4$Parent <- NA
+CSSI_CuSO4$Parent[CSSI_CuSO4$Dataset == "SelectedA" |
+              CSSI_CuSO4$Dataset == "UnselectedA"] <- "OakI"
+
+CSSI_CuSO4$Parent[CSSI_CuSO4$Dataset == "SelectedC" |
+              CSSI_CuSO4$Dataset == "UnselectedC"] <- "WineI"
+
+CSSI_CuSO4$ReadCount <- as.numeric(CSSI_CuSO4$ReadCount)
+
+CSSI_CuSO4 %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent) %>% distinct %>%
+ pivot_wider(names_from = c(Bulk, Parent, PAllele), values_from = ReadCount) -> CSSI_CuSO4_cybr2
+
+saveRDS(object = CSSI_CuSO4_cybr2, file = "CSSI_CuSO4_cybr2.rds")
+
+################################################################################
+
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+mydatatotest = "HKTMZDRX2.SortedCat.vcf.output.table"
+
+CSSI_CycZeo <- cybrInputGATKTable(mydatatotest) %>% 
+  cybrQualityFilter() %>% 
+  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
+  na.omit()
+
+CSSI_CycZeo$Bulk <- NA
+CSSI_CycZeo$Bulk[CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OCA.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OCB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WCA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WCB.fastq"] <- "Cycloheximide"
+
+CSSI_CycZeo$Bulk[CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_ODA.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_ODB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WDA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WDB.fastq"] <- "Dilute"
+
+CSSI_CycZeo$Bulk[CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OZA.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OZB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WZA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WZB.fastq"] <- "Zeocin"
+
+CSSI_CycZeo$Parent <- NA
+CSSI_CycZeo$Parent[CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OZA.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OZB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OCA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_OCB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_ODA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_ODB.fastq"] <- "OakI"
+
+CSSI_CycZeo$Parent[CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WZA.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WZB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WCA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WCB.fastq" |
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WDA.fastq" | 
+              CSSI_CycZeo$Dataset == "HKTMWDRX2_n01_WDB.fastq"] <- "WineI"
+
+CSSI_CycZeo$Rep <- NA
+CSSI_CycZeo$Rep[grep("A.fastq", CSSI_CycZeo$Dataset)] <- "A"
+CSSI_CycZeo$Rep[grep("B.fastq", CSSI_CycZeo$Dataset)] <- "B"
+
+CSSI_CycZeo$ReadCount <- as.numeric(CSSI_CycZeo$ReadCount)
+
+CSSI_Cyc <- CSSI_CycZeo[CSSI_CycZeo$Bulk != "Zeocin",]
+CSSI_Zeocin <- CSSI_CycZeo[CSSI_CycZeo$Bulk != "Cycloheximide",]
+
+
+CSSI_Zeocin %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+ pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_Zeocin_cybr2
+
+CSSI_Cyc %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+ pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_Cyc_cybr2
+
+saveRDS(object = CSSI_Zeocin_cybr2, file = "CSSI_Zeocin_cybr2.rds")
+saveRDS(object = CSSI_Cyc_cybr2, file = "CSSI_Cyc_cybr2.rds")
+
+```
+
+```{r}
+CSSI_Zeocin_cybr2 <- readRDS("CSSI_Zeocin_cybr2.rds")
+CSSI_Cyc_cybr2 <- readRDS("CSSI_Cyc_cybr2.rds")
+
+```
+
+```{r}
+
+#Zeocin
+CSSI_Zeocin_cybr2  %>% mutate(H_O_O = Zeocin_OakI_A_Oak, #Zeocin_OakI_B_Oak, 
+                           H_O_W = Zeocin_OakI_A_Wine, #Zeocin_OakI_B_Wine,
+                           H_W_O = Zeocin_WineI_A_Oak, #Zeocin_WineI_B_Oak, 
+                           H_W_W = Zeocin_WineI_A_Wine, #Zeocin_WineI_B_Wine, 
+                           L_O_O = Dilute_OakI_A_Oak, #Dilute_OakI_B_Oak,
+                           L_O_W = Dilute_OakI_A_Wine,#Dilute_OakI_B_Wine,
+                           L_W_O = Dilute_WineI_A_Oak, #Dilute_WineI_B_Oak,
+                           L_W_W = Dilute_WineI_A_Wine) %>% #, Dilute_WineI_B_Wine)
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> CSSI_Zeocin_cybr2_glm
+saveRDS(object = CSSI_Zeocin_cybr2_glm, file = "CSSI_Zeocin_cybr2_glm.rds")
+
+CSSI_Zeocin_cybr2_glm %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_Zeocin_Window100
+
+saveRDS(object = CSSI_Zeocin_Window100, file = "CSSI_Zeocin_Window100.rds")
+
+```
+
+```{r, eval = FALSE}
+
+#CSSI_CuSO4_cybr2 %>% filter(CHROM == "IV", POS == 327540)
+
+#CuSO4
+CSSI_CuSO4_cybr2  %>% mutate(H_O_O = CuSO4_OakI_Oak, 
+                           H_O_W = CuSO4_OakI_Wine, 
+                           H_W_O = CuSO4_WineI_Oak,  
+                           H_W_W = CuSO4_WineI_Wine,  
+                           L_O_O = Dilute_OakI_Oak, 
+                           L_O_W = Dilute_OakI_Wine,
+                           L_W_O = Dilute_WineI_Oak, 
+                           L_W_W = Dilute_WineI_Wine) %>% 
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% #filter(CHROM == "IV", POS == 327540) %>% 
+  summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                      L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> CSSI_CuSO4_cybr2_glm
+
+saveRDS(object = CSSI_CuSO4_cybr2_glm, file = "CSSI_CuSO4_cybr2_glm.rds")
+
+CSSI_CuSO4_cybr2_glm %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_CuSO4_Window100
+
+saveRDS(object = CSSI_CuSO4_Window100, file = "CSSI_CuSO4_Window100.rds")
+```
+
+```{r}
+CSSI_Zeocin_Window100 <- readRDS("CSSI_Zeocin_Window100.rds")
+CSSI_CuSO4_Window100 <- readRDS("CSSI_CuSO4_Window100.rds")
+
+```
+
+```{r, eval =}
+CSSIFluc_cybr2 <- readRDS("testCSSIFluc_cybr2.rds")
+
+CSSIFluc_cybr2 %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSIFluc_Window100
+
+saveRDS(CSSIFluc_Window100, file = "CSSIFluc_Window100.rds")
+```
+
+```{r}
+CSSI_CuSO4_Window100 %>% ggplot(aes(x = POS, y = abs(SmoothZ), color = label)) + geom_line() + facet_grid(~CHROM, scales = "free") + ggtitle("CuSO4") + ylim(c(0,12))
+CSSI_Zeocin_Window100 %>% ggplot(aes(x = POS, y = abs(SmoothZ), color = label)) + geom_line() + facet_grid(~CHROM, scales = "free") + ggtitle("Zeocin_A") + ylim(c(0,12))
+CSSIFluc_Window100 %>% ggplot(aes(x = POS, y = abs(SmoothZ), color = label)) + geom_line() + facet_grid(~CHROM, scales = "free") + ggtitle("Fluconazole (test)") + ylim(c(0,12))
+
+```
+
+## Scaling to Chr III Intercept peak
+
+First, do the replicates agree on that one?
+
+```{r}
+#Zeocin B
+CSSI_Zeocin_cybr2  %>% mutate(H_O_O = Zeocin_OakI_B_Oak, #Zeocin_OakI_B_Oak, 
+                           H_O_W = Zeocin_OakI_B_Wine, #Zeocin_OakI_B_Wine,
+                           H_W_O = Zeocin_WineI_B_Oak, #Zeocin_WineI_B_Oak, 
+                           H_W_W = Zeocin_WineI_B_Wine, #Zeocin_WineI_B_Wine, 
+                           L_O_O = Dilute_OakI_B_Oak, #Dilute_OakI_B_Oak,
+                           L_O_W = Dilute_OakI_B_Wine,#Dilute_OakI_B_Wine,
+                           L_W_O = Dilute_WineI_B_Oak, #Dilute_WineI_B_Oak,
+                           L_W_W = Dilute_WineI_B_Wine) %>% #, Dilute_WineI_B_Wine)
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> CSSI_Zeocin_cybr2_glmB
+saveRDS(object = CSSI_Zeocin_cybr2_glmB, file = "CSSI_Zeocin_cybr2_glmB.rds")
+
+CSSI_Zeocin_cybr2_glmB %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_Zeocin_Window100B
+
+saveRDS(object = CSSI_Zeocin_Window100B, file = "CSSI_Zeocin_Window100B.rds")
+
+```
+
+
+```{r}
+CSSI_Zeocin_Window100B
+CSSI_Zeocin_Window100A <- CSSI_Zeocin_Window100
+
+CSSI_Zeocin_Window100B %>% ggplot(aes(x = POS, y = abs(SmoothZ), color = label)) + geom_line() +
+  geom_line(data = CSSI_Zeocin_Window100A, aes(x = POS, y = abs(SmoothZ), color = label), linetype = "dashed") + 
+  facet_grid(~CHROM, scales = "free") + ggtitle("Zeocin B Solid, A Dashed")
+
+CSSI_Zeocin_Window100B %>% filter(CHROM == "III") %>% ggplot(aes(x = POS, y = abs(SmoothZ), color = label)) + geom_line() +
+  geom_line(data = CSSI_Zeocin_Window100A[CSSI_Zeocin_Window100A$CHROM == "III",], aes(x = POS, y = abs(SmoothZ), color = label), linetype = "dashed") + 
+  facet_grid(~CHROM, scales = "free") + ggtitle("Zeocin B Solid, A Dashed")
+
+```
+
+Next look at if coverage is significantly different between them?
+
+```{r}
+
+CSSI_Zeocin_cybr2 %>% pivot_longer(c(-CHROM, -POS)) -> ZeocinPivot
+
+ZeocinPivot$Rep <- NA
+ZeocinPivot$Rep[grep("_A_", ZeocinPivot$name)] <- "A"
+ZeocinPivot$Rep[grep("_B_", ZeocinPivot$name)] <- "B"
+
+################################################################################
+
+ZeocinPivot %>% group_by(POS, CHROM, Rep) %>% summarise(TotalCoverage = sum(value)) -> Zeocin_totalrepcoverage
+ZeocinPivot %>% group_by(POS, CHROM, name) %>% summarise(Rep = Rep,
+                                                         BulkCoverage = sum(value)) -> Zeocin_bulkcoverage
+
+Zeocin_bulkcoverage %>% filter(CHROM == "III") %>% ggplot(aes(x = POS, y = BulkCoverage, color = name, linetype = Rep)) + geom_line() +
+    facet_grid(~CHROM, scales = "free") + ggtitle("Zeocin")
+
+Zeocin_totalrepcoverage %>% filter(CHROM == "III") %>% ggplot(aes(x = POS, y = TotalCoverage, color = Rep)) + geom_line() +
+    facet_grid(~CHROM, scales = "free") + ggtitle("Zeocin")
+```
+
+Scale by coverage since obviously the OakI A group are over-represented
+
+```{r}
+
+#What we want is to sample out of the total for every column so that all columns are the same overall coverage...
+CSSI_Zeocin_cybr2 %>% pivot_longer(c(-CHROM, -POS)) %>% group_by(name) %>% 
+  summarise(total_coverage = sum(value),
+  avg_coverage = mean(value)) %>% arrange(total_coverage) %>% 
+  mutate(DecreaseX = total_coverage/min(total_coverage)) -> Zeocin_SNPCoverage
+
+tableinv <- function(x){
+      y <- x[rep(rownames(x),x$value),1:(ncol(x))]
+      rownames(y) <- c(1:nrow(y))
+      return(y)}
+
+
+CSSI_Zeocin_cybr2 %>% transmute(CHROM = CHROM, POS = POS, 
+                                Zeocin_WineI_B_Wine = ceiling(Zeocin_WineI_B_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_WineI_B_Wine"]),
+                                Zeocin_WineI_B_Oak = ceiling(Zeocin_WineI_B_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_WineI_B_Oak"]),
+                                Zeocin_OakI_A_Oak = ceiling(Zeocin_OakI_A_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_OakI_A_Oak"]),
+                                Dilute_OakI_B_Oak = ceiling(Dilute_OakI_B_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_OakI_B_Oak"]),
+                                Zeocin_OakI_A_Wine = ceiling(Zeocin_OakI_A_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_OakI_A_Wine"]),
+                                Dilute_OakI_B_Wine = ceiling(Dilute_OakI_B_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_OakI_B_Wine"]),
+                                Zeocin_WineI_A_Wine = ceiling(Zeocin_WineI_A_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_WineI_A_Wine"]),
+                                Zeocin_WineI_A_Oak = ceiling(Zeocin_WineI_A_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_WineI_A_Oak"]),
+                                Dilute_WineI_B_Wine = ceiling(Dilute_WineI_B_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_WineI_B_Wine"]),
+                                Dilute_WineI_A_Wine = ceiling(Dilute_WineI_A_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_WineI_A_Wine"]),
+                                
+                                Zeocin_OakI_B_Oak = ceiling(Zeocin_OakI_B_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_OakI_B_Oak"]),
+                                Dilute_WineI_B_Oak = ceiling(Dilute_WineI_B_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_WineI_B_Oak"]),
+                                Zeocin_OakI_B_Wine = ceiling(Zeocin_OakI_B_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Zeocin_OakI_B_Wine"]),
+                                Dilute_WineI_A_Oak = ceiling(Dilute_WineI_A_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_WineI_A_Oak"]),
+                                Dilute_OakI_A_Oak = ceiling(Dilute_OakI_A_Oak/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_OakI_A_Oak"]),
+                                Dilute_OakI_A_Wine = ceiling(Dilute_OakI_A_Wine/Zeocin_SNPCoverage$DecreaseX[Zeocin_SNPCoverage$name == "Dilute_OakI_A_Wine"])) -> CSSI_ZeoCin_Downsampled
+
+CSSI_ZeoCin_Downsampled %>% mutate(H_O_O = Zeocin_OakI_B_Oak, 
+                           H_O_W = Zeocin_OakI_B_Wine, #,
+                           H_W_O = Zeocin_WineI_B_Oak, #, 
+                           H_W_W = Zeocin_WineI_B_Wine, #, 
+                           L_O_O = Dilute_OakI_B_Oak, #,
+                           L_O_W = Dilute_OakI_B_Wine,#,
+                           L_W_O = Dilute_WineI_B_Oak, #,
+                           L_W_W = Dilute_WineI_B_Wine) %>% #, )
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> CSSI_Zeocin_cybr2_glmB_downsampled
+
+CSSI_ZeoCin_Downsampled %>% mutate(H_O_O = Zeocin_OakI_A_Oak, #, 
+                           H_O_W = Zeocin_OakI_A_Wine, #,
+                           H_W_O = Zeocin_WineI_A_Oak, #, 
+                           H_W_W = Zeocin_WineI_A_Wine, #, 
+                           L_O_O = Dilute_OakI_A_Oak, #,
+                           L_O_W = Dilute_OakI_A_Wine,#,
+                           L_W_O = Dilute_WineI_A_Oak, #,
+                           L_W_W = Dilute_WineI_A_Wine) %>% #, )
+select(CHROM, POS, H_O_O,H_O_W,H_W_O,H_W_W,L_O_O,L_O_W,L_W_O,L_W_W) %>%
+group_by(CHROM, POS) %>% summarise(summary = glmfixed(H_O_O,H_O_W,H_W_O,H_W_W,
+                                                            L_O_O,L_O_W,L_W_O,L_W_W)[1:4],
+                                                   label = c("intercept", "Bulk", "Parent", "Interaction")) -> CSSI_Zeocin_cybr2_glmA_downsampled
+
+saveRDS(rbind(data.frame(CSSI_Zeocin_cybr2_glmA_downsampled, Rep = "A"),
+      data.frame(CSSI_Zeocin_cybr2_glmB_downsampled, Rep = "B")), file = "DownsampledZeocin.rds")
+
+
+CSSI_Zeocin_cybr2_glmA_downsampled %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_Zeocin_cybr2_glmA_downsampled_window
+
+CSSI_Zeocin_cybr2_glmB_downsampled %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_Zeocin_cybr2_glmB_downsampled_window
+
+rbind(data.frame(CSSI_Zeocin_cybr2_glmA_downsampled_window, Rep = "A"),
+      data.frame(CSSI_Zeocin_cybr2_glmB_downsampled_window, Rep = "B")) %>% ggplot(aes(x = POS, y = SmoothZ, color = label, linetype = Rep)) + geom_line() + facet_grid(~CHROM, scale = "free")
+```
+
+```{r}
+#Next make each column the long form and then sample the CHROM/POS, then put them all back in order...?
+samplecoverage <- function(vector, coverage){
+  tableinv(vector)
+  rbinom(1, coverage, prob = sum(vector)/coverage)
+}
+
+rbinom(1, 10, prob = 0.1)
+
+samplecoverage(vector = 1:10, 5)
+
+CSSI_Zeocin_cybr2$sample <- rbinom(1, coverage, prob = lrP$perc[i]) + 1
+CSSI_Zeocin_cybr2_scaled 
+
+sum(CSSI_Zeocin_cybr2$Dilute_OakI_A_Oak)
+test <- CSSI_Zeocin_cybr2[1:10,3]
+tableinv(CSSI_Zeocin_cybr2[1:10,3], "Dilute_OakI_A_Oak")
+
+samplecov <- function(CSSI_Zeocin_cybr2, 
+                      CHROM = "CHROM", 
+                      POS = "POS", 
+                      Dilute_OakI_A_Oak = "value",
+                      coverage = 10){
+  sample(rep(paste(CSSI_Zeocin_cybr2[["CHROM"]], CSSI_Zeocin_cybr2[["POS"]], sep = "_"), CSSI_Zeocin_cybr2[["value"]]), size = coverage, replace = FALSE) %>% 
+    table(dnn = "String") %>% 
+    as.data.frame() %>%  mutate(chrom = gsub("_[[:digit:]]+", "", String),
+                                CHROM = factor(chrom, levels = as.character(as.roman(1:16))),
+                                POS = as.numeric(gsub("[[:alpha:]]+_", "", String))) %>%
+    arrange(chrom, POS)
+  
+  }
+
+CSSI_Zeocin_cybr2 %>% pivot_longer(c(-CHROM, -POS)) %>% group_by(name) %>% summarise(CHROM = CHROM, POS = POS, newthing = samplecov(., Dilute_OakI_A_Oak = "value"))
+
+t(CSSI_Zeocin_cybr2)[, 1:10]
+```
+
+## Adding New Data: CuSO4 Replicates
+
+```{r}
+setwd("../../../GitHub/Sequencing/Analysis/")
+
+parentSNPids <- cybrConvertParentalAlleles(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"), Truncate = TRUE)
+
+#head(parentSNPids)
+
+parentSNPids %>% group_by(CHROM, POS) %>% summarize(Type = Type, Unique = length(unique(Type))) %>% filter(Unique == 1) -> pSNPs
+
+mydatatotest = "Data/HKTFTDRX2.SortedCat.vcf.output.table"
+
+CSSI_CuSO42 <- cybrInputGATKTable(mydatatotest) %>% 
+  cybrQualityFilter() %>% 
+  cybrIDAlleles(BSAdfstart = ., Parentdf = pSNPs, yeast = TRUE) %>% 
+  na.omit()
+
+################################################################################
+#Using Gsub for this
+
+gsub(CSSI_CuSO42$Dataset, "HKTFTDRX2_n01_", "")
+CSSI_CuSO42 %>% mutate(DShort = gsub("HKTFTDRX2_n01_", "", Dataset),
+                       DS = gsub(".fastq", "", DShort)) %>% select(-Dataset, -DShort) -> CSSI_CuSO42
+
+CSSI_CuSO42$Bulk <- NA
+CSSI_CuSO42$Parent <- NA
+CSSI_CuSO42$Rep <- NA
+
+CSSI_CuSO42$Bulk[grep("C", CSSI_CuSO42$DS)] <- "CuSO4"
+CSSI_CuSO42$Bulk[grep("D", CSSI_CuSO42$DS)] <- "Dilute"
+
+CSSI_CuSO42$Rep[grep("a", CSSI_CuSO42$DS)] <- "A"
+CSSI_CuSO42$Rep[grep("b", CSSI_CuSO42$DS)] <- "B"
+
+CSSI_CuSO42$Parent[grep("O", CSSI_CuSO42$DS)] <- "Oak"
+CSSI_CuSO42$Parent[grep("W", CSSI_CuSO42$DS)] <- "Wine"
+
+CSSI_CuSO42$ReadCount <- as.numeric(CSSI_CuSO42$ReadCount)
+  
+# #THIS IGNORES REPLICATES
+CSSI_CuSO42 %>% select(CHROM, POS, PAllele, ReadCount, Bulk, Parent, Rep) %>% distinct %>% 
+ pivot_wider(names_from = c(Bulk, Parent, Rep, PAllele), values_from = ReadCount) -> CSSI_CuSO42_cybr2
+
+saveRDS(object = CSSI_CuSO42_cybr2, file = "C:/Users/cassa/OneDrive/Documents/GitHub/Sequencing/Analysis/RdataFiles/CSSI_CuSO42_cybr2.rds")
+```
+
+Don't actually use this
+
+```{r}
+CSSI_CuSO42_cybr2 <- readRDS("CSSI_CuSO42_cybr2.rds")
+
+CSSI_CuSO42_cybr2 %>% pivot_longer(c(-POS, -CHROM), names_to = "label", values_to = "summary") %>% group_by(CHROM, label) %>% arrange(POS) %>% 
+  summarize(POS = POS, SmoothZ = frollmean(summary, n = 100)) -> CSSI_CuSO42_Window100
+
+saveRDS(CSSI_CuSO42_Window100, file = "CSSI_CuSO42_Window100.rds")
+```
+

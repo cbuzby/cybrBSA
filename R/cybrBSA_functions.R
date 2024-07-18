@@ -1279,3 +1279,31 @@ cybrPermute_byParent_Rep <- function(dataset){
   return(glmresult2)
 }
 
+################################################################################
+subtract <- function(POS){
+  return(max(POS) - min(POS))
+}
+
+findchange <- function(x){
+  t <- length(x)
+  diff <- x[t] - x[1]
+  if(is.na(diff)){
+    return(NA)
+  }else if(diff == 0){
+    return(0)
+  }else{
+    return(diff > 0)  
+  }
+}
+
+findpeak <- function(x){
+  t <- length(x)
+  diff <- x[t] - x[1]
+  return(diff)
+}
+
+
+cybr_weightedgauss <- function(myx){
+  myy <- dnorm(1:length(myx), mean = length(myx)/2, sd = 10)
+  return(weighted.mean(x = myx, y = myy, na.rm = TRUE))
+} 

@@ -1284,6 +1284,10 @@ subtract <- function(POS){
   return(max(POS) - min(POS))
 }
 
+subtract2 <- function(POS){
+  return(POS[1] - POS[2])
+}
+
 findchange <- function(x){
   t <- length(x)
   diff <- x[t] - x[1]
@@ -1307,3 +1311,124 @@ cybr_weightedgauss <- function(myx){
   myy <- dnorm(1:length(myx), mean = length(myx)/2, sd = 10)
   return(weighted.mean(x = myx, y = myy, na.rm = TRUE))
 } 
+
+equivalent <- function(x){
+  x[1] == x[2]
+}
+
+################################################################################
+
+cybrInputGATKTable2 <- function(rawData, yeast = TRUE){
+  
+  require(dplyr)
+  require(doParallel)
+  require(foreach)
+  
+  HNGLCDRXY <- read.table(rawData, header = TRUE)
+  
+  #Identify the unique values besides AD/DP/GQ/PL
+  gsub(".AD", "",
+       gsub(".GQ", "",
+            gsub(".DP","",
+                 gsub(".PL","",
+                      colnames(select(HNGLCDRXY, -CHROM, -POS, -REF, -ALT)))))) %>% unique() -> Samples
+  #i <- Samples[1]
+  
+  resultscdf <- foreach(i=Samples,.combine=rbind) %dopar% {
+    mydf <- HNGLCDRXY %>% select(CHROM, POS, REF, ALT) %>% mutate(Dataset = i)
+    AD <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("AD"))
+    GQ <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("GQ"))
+    DP <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("DP"))
+    PL <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("PL"))
+    cbind(mydf, AD , GQ , DP, PL) -> mydftotal
+    colnames(mydftotal) <- c(colnames(mydf), "AD", "GQ", "DP", "PL")
+    
+    mydftotal %>% separate(AD, c('AD.REF','AD.ALT'), extra='drop') %>%
+      separate(PL, c('PL.REF','PL.ALT'), extra='drop') %>%
+      #Added 10/18/23:
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> mycdf
+    
+    mycdf %>% filter(grepl(",", ALT)) %>% 
+      separate(ALT, c("A1", "A2"), extra = 'merge') %>%
+      separate(AD.ALT, c("AD1", "AD2"), extra = 'merge') %>%
+      separate(PL.ALT, c("P1", "P2"), extra = 'merge') %>%
+      
+      pivot_longer(c(A1, A2), names_to = "NumAlt", values_to = "ALT") %>%
+      pivot_longer(c(AD1, AD2), names_to = "NumADAlt", values_to = "AD.ALT") %>%
+      pivot_longer(c(P1, P2), names_to = "NumPL", values_to = "PL.ALT") %>%
+      mutate(NumAlt = gsub("A", "", NumAlt),
+             NumADAlt = gsub("AD", "", NumADAlt),
+             NumPL = gsub("P", "", NumPL)) %>%
+      filter(NumAlt == NumPL,
+             NumPL == NumADAlt) %>%
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> doublecdf
+    
+    doublecdf %>% filter(grepl(",", ALT)) %>%
+      separate(ALT, c("A1", "A2"), extra = 'merge') %>%
+      separate(AD.ALT, c("AD1", "AD2"), extra = 'merge') %>%
+      separate(PL.ALT, c("P1", "P2"), extra = 'merge') %>%
+      
+      pivot_longer(c(A1, A2), names_to = "NumAlt", values_to = "ALT") %>%
+      pivot_longer(c(AD1, AD2), names_to = "NumADAlt", values_to = "AD.ALT") %>%
+      pivot_longer(c(P1, P2), names_to = "NumPL", values_to = "PL.ALT") %>%
+      mutate(NumAlt = gsub("A", "", NumAlt),
+             NumADAlt = gsub("AD", "", NumADAlt),
+             NumPL = gsub("P", "", NumPL)) %>%
+      filter(NumAlt == NumPL,
+             NumPL == NumADAlt) %>%
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> triplecdf
+    
+    rbind(mycdf, doublecdf, triplecdf) -> newcdf
+    
+    newcdf
+  }
+  
+  if(yeast == TRUE){
+    ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+                                           "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "M"),
+                           CHROM = c("NC_001133.9", "NC_001134.8", "NC_001135.5", "NC_001136.10",
+                                     "NC_001137.3", "NC_001138.5", "NC_001139.9", "NC_001140.6",
+                                     "NC_001141.2", "NC_001142.9", "NC_001143.9", "NC_001144.5",
+                                     "NC_001145.3", "NC_001146.8", "NC_001147.6", "NC_001148.4", "NC_001224.1"))
+    
+    resultscdf %>% left_join(.,ChromKey) %>% select(-CHROM) %>% mutate(CHROM = chromosomes) %>% select(-chromosomes) -> results
+  }else{
+    results <- resultscdf
+  }
+  return(results)
+  
+}
+
+glmer_cb2_short <- function (..., W, formula, numgroups = FALSE, outputlength = 4, 
+                             return = c("Z")) 
+{
+  data <- list(...)
+  
+  require(lme4)
+  if (is.null(W) || is.null(formula)) {
+    stop("Weights (W) and formula must be provided")
+  }
+  glm_formula <- as.formula(formula)
+  if (!all(names(data) %in% all.vars(glm_formula))) {
+    stop("One or more variables in the formula are not provided as arguments")
+  }
+  for (i in all.vars(glm_formula)) {
+    if (length(unique(as.data.frame(data)[, i])) < 2) {
+      output <- rep(NA, outputlength)
+      return(output)
+    }
+  }
+  glm_fit <- glmer(glm_formula, data = as.data.frame(data), weights = W, 
+                   family = binomial)
+  if (return %in% "Z") {
+    output <- summary(glm_fit)$coefficients[((length(summary(glm_fit)$coefficients) * 
+                                                0.5) + 1):((length(summary(glm_fit)$coefficients) * 
+                                                              0.75))]
+  }
+  if (length(output) == outputlength) {
+    return(output)
+  }
+  else {
+    return(rep(NA, outputlength))
+  }
+}

@@ -608,72 +608,72 @@ cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 ################################################################################
 # Check number of loci per chromosome for samples to get window sizes
 
-checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
-  if(is.null(exceptchr) == FALSE){
-    includechr = FALSE
-  }
-  if(includechr != TRUE){
-    if(is.null(exceptchr)){
-      Dataset %>% filter(CHROM %in% includechr) -> Dataset
-    }else{
-      Dataset %>% filter(CHROM %in% exceptchr == FALSE | CHROM %in% includechr) -> Dataset
-    }
-  }
-
-  Dataset %>% group_by(CHROM) %>%
-    summarise(CHROM = CHROM, SNPs = length(unique(POS))) %>%
-    distinct() %>%
-    mutate(maxW = floor(SNPs/2)) -> tablecounts
-
-  return(tablecounts)
-}
+# checkWindowLim <- function(Dataset, includechr = TRUE, exceptchr = NULL){
+#   if(is.null(exceptchr) == FALSE){
+#     includechr = FALSE
+#   }
+#   if(includechr != TRUE){
+#     if(is.null(exceptchr)){
+#       Dataset %>% filter(CHROM %in% includechr) -> Dataset
+#     }else{
+#       Dataset %>% filter(CHROM %in% exceptchr == FALSE | CHROM %in% includechr) -> Dataset
+#     }
+#   }
+#
+#   Dataset %>% group_by(CHROM) %>%
+#     summarise(CHROM = CHROM, SNPs = length(unique(POS))) %>%
+#     distinct() %>%
+#     mutate(maxW = floor(SNPs/2)) -> tablecounts
+#
+#   return(tablecounts)
+# }
 
 
 ################################################################################
 # Additional functions that are probably in this now
 ################################################################################
 
-glmfixed <- function(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW){
-
-  combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
-                             Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
-                             Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
-                             Reads = c(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW))
-
-  b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial,
-           data = combineddata)
-
-  summary(b)$coefficients[
-    ((length(summary(b)$coefficients)/4)*2+1):
-      ((length(summary(b)$coefficients)/4)*3)]
-}
+# glmfixed <- function(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW){
+#
+#   combineddata <- data.frame(Bulk = factor(c("H", "H","H", "H", "L", "L","L", "L")),
+#                              Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W")),
+#                              Allele = factor(c("O", "W", "O", "W","O", "W", "O", "W")),
+#                              Reads = c(HOO, HOW, HWO, HWW, LOO, LOW, LWO, LWW))
+#
+#   b <- glm(Allele ~ Bulk*Parent, weights = Reads, family = binomial,
+#            data = combineddata)
+#
+#   summary(b)$coefficients[
+#     ((length(summary(b)$coefficients)/4)*2+1):
+#       ((length(summary(b)$coefficients)/4)*3)]
+# }
 
 ################################################################################
-glmfixed_rep <- function(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
-                         HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb){
-
-  combineddata <- data.frame(Bulk = factor(c("H","H","H", "H",
-                                             "L", "L","L", "L",
-                                             "H", "H","H", "H",
-                                             "L", "L","L", "L")),
-                             Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W",
-                                               "O", "O", "W", "W", "O", "O", "W", "W")),
-                             Allele = factor(c("O", "W", "O", "W",
-                                               "O", "W", "O", "W",
-                                               "O", "W", "O", "W",
-                                               "O", "W", "O", "W")),
-                             Rep = factor(c("A", "A", "A", "A","A", "A", "A", "A",
-                                            "B", "B", "B", "B","B", "B", "B", "B")),
-                             Reads = c(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
-                                       HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb))
-
-  b <- glm(Allele ~ Bulk*Parent+Rep, weights = Reads, family = binomial,
-           data = combineddata)
-
-  summary(b)$coefficients[
-    ((length(summary(b)$coefficients)/4)*2+1):
-      ((length(summary(b)$coefficients)/4)*3)]
-}
+# glmfixed_rep <- function(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
+#                          HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb){
+#
+#   combineddata <- data.frame(Bulk = factor(c("H","H","H", "H",
+#                                              "L", "L","L", "L",
+#                                              "H", "H","H", "H",
+#                                              "L", "L","L", "L")),
+#                              Parent = factor(c("O", "O", "W", "W", "O", "O", "W", "W",
+#                                                "O", "O", "W", "W", "O", "O", "W", "W")),
+#                              Allele = factor(c("O", "W", "O", "W",
+#                                                "O", "W", "O", "W",
+#                                                "O", "W", "O", "W",
+#                                                "O", "W", "O", "W")),
+#                              Rep = factor(c("A", "A", "A", "A","A", "A", "A", "A",
+#                                             "B", "B", "B", "B","B", "B", "B", "B")),
+#                              Reads = c(HOOa, HOWa, HWOa, HWWa, LOOa, LOWa, LWOa, LWWa,
+#                                        HOOb, HOWb, HWOb, HWWb, LOOb, LOWb, LWOb, LWWb))
+#
+#   b <- glm(Allele ~ Bulk*Parent+Rep, weights = Reads, family = binomial,
+#            data = combineddata)
+#
+#   summary(b)$coefficients[
+#     ((length(summary(b)$coefficients)/4)*2+1):
+#       ((length(summary(b)$coefficients)/4)*3)]
+# }
 
 cybr2_rollmean <- function(dataframe){
   dataframe %>% pivot_longer(c(-CHROM, -POS), names_to = "label") %>% group_by(CHROM, label) %>% arrange(POS) %>%
@@ -1073,4 +1073,10 @@ glmer_cb2_short <- function (..., W, formula, numgroups = FALSE, outputlength = 
   else {
     return(rep(NA, outputlength))
   }
+}
+
+slope_change <- function(x){
+  df = data.frame(x = x, index = 1:length(x))
+  slope = lm(x ~ index, df)$coefficients[2]
+  return(slope)
 }

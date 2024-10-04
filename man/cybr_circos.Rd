@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 %%  ~~function to do ... ~~
-Function to plot interactions between chromosomes from BSA experiments.
+Plot interactions between chromosomes I and VIII from BSA experiments.
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~

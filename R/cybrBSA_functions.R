@@ -1080,3 +1080,311 @@ slope_change <- function(x){
   slope = lm(x ~ index, df)$coefficients[2]
   return(slope)
 }
+
+cybr_lmpeaks <- function(Data, cutoff = 2, width = 700){
+  require(dplyr)
+
+  Data %>% mutate(abs_zscore = abs(zscore)) %>%
+    mutate_at(vars(abs_zscore), funs(replace(., .< cutoff, -2))) %>%
+    arrange(POS) %>%
+    group_by(CSS, CHROM) %>%
+    summarize(POS = POS,
+              abs_zscore = abs_zscore,
+              smooth_abs_z = frollapply(abs_zscore, mean, n = 1, align = "center")) %>%
+    na.omit() %>%
+    group_by(CHROM, CSS) %>% arrange(POS) %>%
+    summarize(POS = POS, abs_zscore = abs_zscore, smooth_abs_z = smooth_abs_z,
+              slope = frollapply(smooth_abs_z, FUN = slope_change, n = width, align = "center")) %>%
+    mutate(negative = slope < 0) %>% na.omit() %>%
+    summarize(POSc = POS, crossover = frollapply(negative, FUN = subtract2, n = 2)) %>%
+    filter(crossover == 1) -> CrossoverPoints
+
+  data.frame(CHROM = as.factor(as.character(as.roman(1:16)))) %>%
+    merge(data.frame(CSS = c("VIII", "I"))) %>%
+    mutate(POSc = 1, crossover = 0) %>%
+    rbind(CrossoverPoints) %>%
+    group_by(CHROM, CSS) %>%
+    arrange(POSc) %>%
+    mutate(order = paste("A", row_number(POSc), sep = "_")) %>%
+    select(-crossover) %>%
+    pivot_wider(names_from = order, values_from = POSc) %>%
+    pivot_longer(cols = starts_with("A"), names_to = "segment", values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    arrange(CHROM, CSS, value) %>%
+    group_by(CHROM, CSS) %>%
+    mutate(End = lead(value, default = Inf)) %>%
+    ungroup() %>%
+    rename(Start = value) %>%
+    select(CHROM, CSS, Start, End) -> tempStartEnd
+
+  peakdata <- data.frame(CHROM = NA, CSS = NA, zscore = NA)
+
+  for(i in unique(tempStartEnd$CHROM)){
+    for(c in unique(tempStartEnd$CSS)){
+      tempStartEnd %>% filter(CHROM == i, CSS == c) -> newtemp
+
+      # newtemp$End[is.na(newtemp$End)] <- Inf
+      # newtemp$End[is.na(newtemp$Start)] <- Inf
+
+      for(k in 1:length(newtemp$Start)){
+        AllCuSO4_glmer_1byRep %>% filter(CHROM == i, CSS == c, label == "Bulk") %>%
+          filter(POS > newtemp$Start[k], POS < newtemp$End[k]) %>%
+          ungroup() %>%
+          group_by(CHROM, CSS) %>%
+          summarize(zscore = max(abs(zscore))) -> something
+
+        peakdata <- rbind(peakdata, something)
+      }
+
+      rm(newtemp)
+
+    }
+  }
+  Data %>%
+    mutate(zscore = abs(zscore)) %>% merge(peakdata) %>%
+    filter(zscore > cutoff) -> peaks
+
+  return(peaks)
+
+}
+
+glm_cb2_all <- function(..., W, formula, numgroups = FALSE, outputlength = 8) {
+  data <- list(...)
+
+  #Ensure that there is a formula and W parameter
+  if (is.null(W) || is.null(formula)) {
+    stop("Weights (W) and formula must be provided")
+  }
+  #Set formula
+  glm_formula <- as.formula(formula)
+  #Ensure that formula works for the data provided
+  if (!all(names(data) %in% all.vars(glm_formula))) {
+    stop("One or more variables in the formula are not provided as arguments")
+  }
+
+  #########################
+  for(i in all.vars(glm_formula)){
+    if(length(unique(as.data.frame(data)[,i])) < 2){
+      output <- rep(NA, outputlength)
+      #print("Not enough levels within groups")
+
+      return(output)
+    }
+  }
+
+  glm_fit <- glm(glm_formula, data = as.data.frame(data), weights = W, family = binomial)
+
+  output <- summary(glm_fit)$coefficients[c(((length(summary(glm_fit)$coefficients)*0)+1):
+                                              ((length(summary(glm_fit)$coefficients)*0.25)),
+                                            ((length(summary(glm_fit)$coefficients)*0.5)+1):
+                                              ((length(summary(glm_fit)$coefficients)*0.75)))]
+
+
+  if(length(output) == outputlength){
+    return(output)
+  }else{
+    return(rep(NA, outputlength))
+  }
+
+}
+
+
+################################################################################
+# No replicates, fix Parent
+cybrPermute_cb2_all <- function(dataset,
+                                R = 0, perp = 1, outlength = 4,
+                                glmform = "Allele ~ Bulk * Parent",
+                                inputlabels = c("Intercept", "Bulk", "Parent", "Interaction")){
+  start.time <- Sys.time()
+
+  print("Make sure that dilute bulk is labeled aD")
+  print(paste("Your labels are:", inputlabels))
+
+  if(R > 0){ #INCLUDE REPLICATES
+    dataset %>%
+      distinct() %>% ungroup() %>%
+      group_by(CHROM, POS, Allele, Bulk, Rep, Parent) %>%
+      summarize(culprits = length((SmoothCount))) %>%
+      merge(dataset) %>%
+      filter(culprits == 1) %>%
+      ungroup() %>%
+      distinct() %>% #THIS IS IMPORTANT
+      pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+  }else{ #DO NOT INCLUDE REPLICATES
+    dataset %>%
+      distinct() %>% ungroup() %>%
+      group_by(CHROM, POS, Allele, Bulk, Parent) %>%
+      summarize(culprits = length((SmoothCount))) %>%
+      merge(dataset) %>%
+      filter(culprits == perp) %>%
+      ungroup() %>%
+      distinct() %>% #THIS IS IMPORTANT
+      pivot_wider(names_from = Allele, values_from = SmoothCount) -> newnewtest
+  }
+
+  #PERMUTE TWICE
+  if(R > 0){
+    newnewtest %>% filter(Bulk == "aD",
+                          CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+      select(CHROM, POS, Rep,
+             Parent, Oak, Wine) %>%
+      group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+      summarize(Parent = Parent, Rep = Rep,
+                Oak = Oak, Wine = Wine, Loc = sample(Loc)) %>%
+      mutate(Bulk = "A") -> shuffled_DiluteA2
+
+    newnewtest %>% filter(Bulk == "aD",
+                          CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+      select(CHROM, POS,
+             Rep, Parent, Oak, Wine) %>%
+      group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+      summarize(Parent = Parent, Rep = Rep,
+                Oak = Oak, Wine = Wine, Loc = sample(Loc)) %>%
+      mutate(Bulk = "B") -> shuffled_DiluteB2
+
+  }else{
+    newnewtest %>% filter(Bulk == "aD",
+                          CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+      select(CHROM, POS, Parent, Oak, Wine) %>%
+      group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+      summarize(Parent = Parent, Oak = Oak, Wine = Wine, Loc = sample(Loc)) %>%
+      mutate(Bulk = "A") -> shuffled_DiluteA2
+
+    newnewtest %>% filter(Bulk == "aD",
+                          CHROM %in% c("I", "III", "V", "VIII", "M") == FALSE) %>%
+      select(CHROM, POS, Parent, Oak, Wine) %>%
+      group_by(Parent) %>% mutate(Loc = paste(CHROM, POS)) %>%
+      summarize(Parent = Parent, Oak = Oak, Wine = Wine, Loc = sample(Loc)) %>%
+      mutate(Bulk = "B") -> shuffled_DiluteB2
+
+  }
+
+  rbind(shuffled_DiluteA2, shuffled_DiluteB2) %>% pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "SmoothCount") -> shuffletoglm2
+
+  #RUN THE GLM
+  if(R > 0) {
+    shuffletoglm2 %>% na.omit() %>%
+      group_by(Loc) %>%
+      mutate_if(is.character, as.factor) %>%
+      summarize(Summary = glm_cb2_all(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      Rep = Rep,
+                                      W = SmoothCount,
+                                      formula = glmform,
+                                      outputlength = length(inputlabels)*2),
+                Factor = rep(inputlabels, 2),
+                d = c(rep("Effect", length(inputlabels)),
+                      rep("Z", length(inputlabels)))) -> glmresult
+  }else{
+    shuffletoglm2 %>% na.omit() %>%
+      #Original Script
+      group_by(Loc) %>%
+      mutate_if(is.character, as.factor) %>%
+      summarize(Summary = glm_cb2_all(Allele = Allele,
+                                      Bulk = Bulk,
+                                      Parent = Parent,
+                                      W = SmoothCount,
+                                      formula = glmform,
+                                      outputlength = length(inputlabels)*2),
+                Factor = rep(inputlabels, 2),
+                d = c(rep("Effect", length(inputlabels)),
+                      rep("Z", length(inputlabels)))) -> glmresult
+  }
+
+
+  end.time = Sys.time()
+  print(end.time - start.time)
+  return(glmresult)
+}
+
+cybrInputGATKTable2 <- function(rawData, yeast = TRUE){
+
+  require(dplyr)
+  require(doParallel)
+  require(foreach)
+
+  HNGLCDRXY <- read.table(rawData, header = TRUE)
+
+  #Identify the unique values besides AD/DP/GQ/PL
+  gsub(".AD", "",
+       gsub(".GQ", "",
+            gsub(".DP","",
+                 gsub(".PL","",
+                      colnames(select(HNGLCDRXY, -CHROM, -POS, -REF, -ALT)))))) %>% unique() -> Samples
+  #i <- Samples[1]
+
+  resultscdf <- foreach(i=Samples,.combine=rbind) %dopar% {
+    mydf <- HNGLCDRXY %>% select(CHROM, POS, REF, ALT) %>% mutate(Dataset = i)
+    AD <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("AD"))
+    GQ <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("GQ"))
+    DP <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("DP"))
+    PL <- select(HNGLCDRXY,matches(c(i), ignore.case = FALSE)) %>% select(., contains("PL"))
+    cbind(mydf, AD , GQ , DP, PL) -> mydftotal
+    colnames(mydftotal) <- c(colnames(mydf), "AD", "GQ", "DP", "PL")
+
+    mydftotal %>% separate(AD, c('AD.REF','AD.ALT'), extra='drop') %>%
+      separate(PL, c('PL.REF','PL.ALT'), extra='drop') %>%
+      #Added 10/18/23:
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> mycdf
+
+    mycdf %>% filter(grepl(",", ALT)) %>%
+      separate(ALT, c("A1", "A2"), extra = 'merge') %>%
+      separate(AD.ALT, c("AD1", "AD2"), extra = 'merge') %>%
+      separate(PL.ALT, c("P1", "P2"), extra = 'merge') %>%
+
+      pivot_longer(c(A1, A2), names_to = "NumAlt", values_to = "ALT") %>%
+      pivot_longer(c(AD1, AD2), names_to = "NumADAlt", values_to = "AD.ALT") %>%
+      pivot_longer(c(P1, P2), names_to = "NumPL", values_to = "PL.ALT") %>%
+      mutate(NumAlt = gsub("A", "", NumAlt),
+             NumADAlt = gsub("AD", "", NumADAlt),
+             NumPL = gsub("P", "", NumPL)) %>%
+      filter(NumAlt == NumPL,
+             NumPL == NumADAlt) %>%
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> doublecdf
+
+    doublecdf %>% filter(grepl(",", ALT)) %>%
+      separate(ALT, c("A1", "A2"), extra = 'merge') %>%
+      separate(AD.ALT, c("AD1", "AD2"), extra = 'merge') %>%
+      separate(PL.ALT, c("P1", "P2"), extra = 'merge') %>%
+
+      pivot_longer(c(A1, A2), names_to = "NumAlt", values_to = "ALT") %>%
+      pivot_longer(c(AD1, AD2), names_to = "NumADAlt", values_to = "AD.ALT") %>%
+      pivot_longer(c(P1, P2), names_to = "NumPL", values_to = "PL.ALT") %>%
+      mutate(NumAlt = gsub("A", "", NumAlt),
+             NumADAlt = gsub("AD", "", NumADAlt),
+             NumPL = gsub("P", "", NumPL)) %>%
+      filter(NumAlt == NumPL,
+             NumPL == NumADAlt) %>%
+      select(CHROM, POS,REF,ALT,Dataset,AD.REF,AD.ALT,GQ,DP,PL.REF,PL.ALT) -> triplecdf
+
+    rbind(mycdf, doublecdf, triplecdf) -> newcdf
+
+    newcdf
+  }
+
+  if(yeast == TRUE){
+    ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+                                           "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "M"),
+                           CHROM = c("NC_001133.9", "NC_001134.8", "NC_001135.5", "NC_001136.10",
+                                     "NC_001137.3", "NC_001138.5", "NC_001139.9", "NC_001140.6",
+                                     "NC_001141.2", "NC_001142.9", "NC_001143.9", "NC_001144.5",
+                                     "NC_001145.3", "NC_001146.8", "NC_001147.6", "NC_001148.4", "NC_001224.1"))
+
+    resultscdf %>% left_join(.,ChromKey) %>% select(-CHROM) %>% mutate(CHROM = chromosomes) %>% select(-chromosomes) -> results
+  }else{
+    results <- resultscdf
+  }
+  return(results)
+
+}
+
+subtract2 <- function(POS){
+  return(POS[1] - POS[2])
+}
+
+slope_change <- function(x){
+  df = data.frame(x = x, index = 1:length(x))
+  slope = lm(x ~ index, df)$coefficients[2]
+  return(slope)
+}

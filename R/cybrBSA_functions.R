@@ -1127,7 +1127,7 @@ cybr_lmpeaks <- function(Data, cutoff = 2, width = 700){
       # newtemp$End[is.na(newtemp$Start)] <- Inf
 
       for(k in 1:length(newtemp$Start)){
-        AllCuSO4_glmer_1byRep %>% filter(CHROM == i, CSS == c, label == "Bulk") %>%
+        Data %>% filter(CHROM == i, CSS == c, label == "Bulk") %>%
           filter(POS > newtemp$Start[k], POS < newtemp$End[k]) %>%
           ungroup() %>%
           group_by(CHROM, CSS) %>%

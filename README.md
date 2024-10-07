@@ -78,6 +78,16 @@ contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
 
 ### Calculate z-scores for glm
 
+First, isolate a single position and run the glm or glmer to verify the number of output coefficients and labels to include:
+```
+test <- rawdata_glm_prep[rawdata_glm_prep$CHROM == "I" & rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
+W = SmoothCount
+F = "Allele ~ Bulk * Parent"
+
+testg <- glm(data = test, formula = F, weights = W, family = "binomial")
+summary(testg)
+```
+
 To calculate logistic regression, use either `glm_cb2_short()` or `glmer_cb2_short()` (requires [lme4](https://cran.r-project.org/web/packages/lme4/index.html) package), which will conduct the logistic regression for EACH individual position. Note that we use dplyr's `summarize` (or `reframe`) to parallelize for all positions. Using a mixed model will take significantly more time. The outputlength parameter of `glm_cb2_short()` should match the labels (here shown as "Factor") within `summarize()`.
 ```
 # Run full dataset

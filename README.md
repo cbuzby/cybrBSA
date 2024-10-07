@@ -80,7 +80,7 @@ contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
 
 First, isolate a single position and run the glm or glmer to verify the number of output coefficients and labels to include:
 ```
-test <- rawdata_glm_prep[rawdata_glm_prep$CHROM == "I" & rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
+test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
 W = SmoothCount
 F = "Allele ~ Bulk * Parent"
 

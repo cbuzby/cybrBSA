@@ -56,11 +56,11 @@ theme_cybr <- function(base_size = 11,
 ################################################################################
 subtract <- function(POS){
   return(max(POS) - min(POS))
-}
+} #**
 
 subtract2 <- function(POS){
   return(POS[1] - POS[2])
-}
+} #**
 
 findchange <- function(x){
   t <- length(x)
@@ -72,28 +72,28 @@ findchange <- function(x){
   }else{
     return(diff > 0)
   }
-}
+} #**
 
 findpeak <- function(x){
   t <- length(x)
   diff <- x[t] - x[1]
   return(diff)
-}
+} #**
 
 cybr_weightedgauss <- function(myx){
   myy <- dnorm(1:length(myx), mean = length(myx)/2, sd = 10)
   return(weighted.mean(x = myx, y = myy, na.rm = TRUE))
-}
+} #*
 
 equivalent <- function(x){
   x[1] == x[2]
-}
+} #*
 
 slope_change <- function(x){
   df = data.frame(x = x, index = 1:length(x))
   slope = lm(x ~ index, df)$coefficients[2]
   return(slope)
-}
+} #**
 
 cybr2_SGDGenes <- function(peaks, GeneList = SGD_Genes, mywindow = 1000){
 
@@ -120,7 +120,7 @@ cybr2_SGDGenes <- function(peaks, GeneList = SGD_Genes, mywindow = 1000){
 
   filtered_df %>%
     return()
-}
+} #**
 
 ################################################################################
 ## Data loading and processing
@@ -173,7 +173,7 @@ cybrInputGATKTable <- function(rawData, yeast = TRUE){
   }
   return(results)
 
-}
+} #*
 
 cybrInputGATKTable2 <- function(rawData, yeast = TRUE){
 
@@ -254,7 +254,7 @@ cybrInputGATKTable2 <- function(rawData, yeast = TRUE){
   }
   return(results)
 
-}
+} #**
 
 ### Filter by quality
 cybrQualityFilter <- function(gatkdf, GQcutoff = 98, cleandata = TRUE){
@@ -277,7 +277,7 @@ cybrQualityFilter <- function(gatkdf, GQcutoff = 98, cleandata = TRUE){
   }
 
   return(cleanedgatkdf)
-}
+} #*
 
 ### Convert Parental VCFs to Data Frame
 cybrConvertParentalAlleles <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
@@ -325,7 +325,7 @@ cybrConvertParentalAlleles <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.
 
   return(SNPids)
 
-}
+} #*
 
 ################################################################################
 ## GLM Analysis Functions
@@ -363,48 +363,8 @@ glmer_cb2_short <- function (..., W, formula, numgroups = FALSE, outputlength = 
   else {
     return(rep(NA, outputlength))
   }
-}
+} #*
 
-
-glm_cb2_all <- function(..., W, formula, numgroups = FALSE, outputlength = 8) {
-  data <- list(...)
-
-  #Ensure that there is a formula and W parameter
-  if (is.null(W) || is.null(formula)) {
-    stop("Weights (W) and formula must be provided")
-  }
-  #Set formula
-  glm_formula <- as.formula(formula)
-  #Ensure that formula works for the data provided
-  if (!all(names(data) %in% all.vars(glm_formula))) {
-    stop("One or more variables in the formula are not provided as arguments")
-  }
-
-  #########################
-  for(i in all.vars(glm_formula)){
-    if(length(unique(as.data.frame(data)[,i])) < 2){
-      output <- rep(NA, outputlength)
-      #print("Not enough levels within groups")
-
-      return(output)
-    }
-  }
-
-  glm_fit <- glm(glm_formula, data = as.data.frame(data), weights = W, family = binomial)
-
-  output <- summary(glm_fit)$coefficients[c(((length(summary(glm_fit)$coefficients)*0)+1):
-                                              ((length(summary(glm_fit)$coefficients)*0.25)),
-                                            ((length(summary(glm_fit)$coefficients)*0.5)+1):
-                                              ((length(summary(glm_fit)$coefficients)*0.75)))]
-
-
-  if(length(output) == outputlength){
-    return(output)
-  }else{
-    return(rep(NA, outputlength))
-  }
-
-}
 
 #running glm for Z scores within summarize or reframe()
 glm_cb2_short <- function(..., W, formula, numgroups = FALSE, outputlength = 4, return = c("Z")) {
@@ -445,7 +405,7 @@ glm_cb2_short <- function(..., W, formula, numgroups = FALSE, outputlength = 4, 
     return(rep(NA, outputlength))
   }
 
-}
+} #**
 
 ################################################################################
 ## Peak-Calling Analysis Functions
@@ -516,7 +476,7 @@ cybr_lmpeaks <- function(Data, cutoff = 2, width = 700){
 
   return(peaks)
 
-}
+} #**
 
 ################################################################################
 ## Visualization Functions
@@ -621,7 +581,7 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
   }
 
   circos.clear()
-}
+} #*
 
 ################################################################################
 ## OBSOLETE
@@ -708,7 +668,7 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
 #   return(output)
 # }
 #
-# #New version:
+# #New version: #*
 # cybr_callpeaks <- function(dataset, param = NULL, threshold = NULL, include_all = NULL){
 #   dataset %>% mutate(summary = abs(summary)) %>% filter(label != "intercept",
 #                                                         label != "Intercept",
@@ -825,7 +785,7 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
 # }
 #
 #
-# ### Combine Parental and Experimental Variants
+# ### Combine Parental and Experimental Variants #*
 # cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
 #
 #   Parentdf %>% na.omit()
@@ -1035,4 +995,44 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
 #   end.time = Sys.time()
 #   print(end.time - start.time)
 #   return(glmresult)
+# }
+
+# glm_cb2_all <- function(..., W, formula, numgroups = FALSE, outputlength = 8) {
+#   data <- list(...)
+#
+#   #Ensure that there is a formula and W parameter
+#   if (is.null(W) || is.null(formula)) {
+#     stop("Weights (W) and formula must be provided")
+#   }
+#   #Set formula
+#   glm_formula <- as.formula(formula)
+#   #Ensure that formula works for the data provided
+#   if (!all(names(data) %in% all.vars(glm_formula))) {
+#     stop("One or more variables in the formula are not provided as arguments")
+#   }
+#
+#   #########################
+#   for(i in all.vars(glm_formula)){
+#     if(length(unique(as.data.frame(data)[,i])) < 2){
+#       output <- rep(NA, outputlength)
+#       #print("Not enough levels within groups")
+#
+#       return(output)
+#     }
+#   }
+#
+#   glm_fit <- glm(glm_formula, data = as.data.frame(data), weights = W, family = binomial)
+#
+#   output <- summary(glm_fit)$coefficients[c(((length(summary(glm_fit)$coefficients)*0)+1):
+#                                               ((length(summary(glm_fit)$coefficients)*0.25)),
+#                                             ((length(summary(glm_fit)$coefficients)*0.5)+1):
+#                                               ((length(summary(glm_fit)$coefficients)*0.75)))]
+#
+#
+#   if(length(output) == outputlength){
+#     return(output)
+#   }else{
+#     return(rep(NA, outputlength))
+#   }
+#
 # }

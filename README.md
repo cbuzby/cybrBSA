@@ -86,11 +86,12 @@ contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
 
 First, isolate a single position and run the glm or glmer to verify the number of output coefficients and labels to include:
 ```
-test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
-W = SmoothCount
-F = "Allele ~ Bulk * Parent"
+head(unique(rawdata_glm_prep$POS)) #choose a position that does not include NAs
 
-testg <- glm(data = test, formula = F, weights = W, family = "binomial")
+test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
+Form = "Allele ~ Bulk * Parent"
+
+testg <- glm(data = test, formula = Form, weights = SmoothCount, family = "binomial")
 summary(testg)
 ```
 
@@ -105,7 +106,7 @@ rawdata_glm_prep %>% na.omit() %>%
                              Bulk = Bulk,
                              Parent = Parent,
                              #Rep = Rep, #any parameters not used should NOT be included
-                             W = SmoothCount,
+                             W = SmoothCount, #use the weights variable from test
                              formula = "Allele ~ Bulk * Parent",
                              outputlength = 4),
             #MAKE SURE THIS IS THE SAME LENGTH AS OUTPUT LENGTH

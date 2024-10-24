@@ -3,6 +3,7 @@ R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis e
 
 ```
 #install.packages("devtools")
+
 require(devtools)
 install_github("cbuzby/cybrBSA")
 ```

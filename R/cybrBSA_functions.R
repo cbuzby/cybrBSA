@@ -10,16 +10,114 @@ require(foreach)
 require(doParallel)
 require(data.table)
 
-library(ggplot2)
-library(tidyr)
-library(reshape2)
-library(cowplot)
-library(dplyr)
-library(circlize)
-library(foreach)
-library(doParallel)
-library(data.table)
+#Install if not - Thank you @Thierry on stack overflow
+if(require("data.table")){
+  #print("data.table is loaded correctly")
+} else {
+  print("trying to install data.table")
+  install.packages("data.table")
+  if(require(data.table)){
+    print("data.table installed and loaded")
+  } else {
+    stop("could not install data.table")
+  }
+}
 
+if(require("doParallel")){
+  #print("doParallel is loaded correctly")
+} else {
+  print("trying to install doParallel")
+  install.packages("doParallel")
+  if(require(doParallel)){
+    print("doParallel installed and loaded")
+  } else {
+    stop("could not install doParallel")
+  }
+}
+
+if(require("foreach")){
+  #print("foreach is loaded correctly")
+} else {
+  print("trying to install foreach")
+  install.packages("foreach")
+  if(require(foreach)){
+    print("foreach installed and loaded")
+  } else {
+    stop("could not install foreach")
+  }
+}
+
+if(require("circlize")){
+  #print("circlize is loaded correctly")
+} else {
+  print("trying to install circlize")
+  install.packages("circlize")
+  if(require(circlize)){
+    print("circlize installed and loaded")
+  } else {
+    stop("could not install circlize")
+  }
+}
+
+if(require("dplyr")){
+  #print("dplyr is loaded correctly")
+} else {
+  print("trying to install dplyr")
+  install.packages("dplyr")
+  if(require(dplyr)){
+    print("dplyr installed and loaded")
+  } else {
+    stop("could not install dplyr")
+  }
+}
+
+if(require("reshape2")){
+  #print("reshape2 is loaded correctly")
+} else {
+  print("trying to install reshape2")
+  install.packages("reshape2")
+  if(require(reshape2)){
+    print("reshape2 installed and loaded")
+  } else {
+    stop("could not install reshape2")
+  }
+}
+
+if(require("tidyr")){
+  #print("tidyr is loaded correctly")
+} else {
+  print("trying to install tidyr")
+  install.packages("tidyr")
+  if(require(tidyr)){
+    print("tidyr installed and loaded")
+  } else {
+    stop("could not install tidyr")
+  }
+}
+
+if(require("cowplot")){
+  #print("cowplot is loaded correctly")
+} else {
+  print("trying to install cowplot")
+  install.packages("cowplot")
+  if(require(cowplot)){
+    print("cowplot installed and loaded")
+  } else {
+    stop("could not install cowplot")
+  }
+}
+
+if(require("ggplot2")){
+  #print("ggplot2 is loaded correctly")
+} else {
+  print("trying to install ggplot2")
+  install.packages("ggplot2")
+  if(require(ggplot2)){
+    print("ggplot2 installed and loaded")
+  } else {
+    stop("could not install ggplot2")
+  }
+}
 
 
 ################################################################################

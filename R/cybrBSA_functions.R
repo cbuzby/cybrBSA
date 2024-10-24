@@ -10,6 +10,17 @@ require(foreach)
 require(doParallel)
 require(data.table)
 
+library(ggplot2)
+library(tidyr)
+library(reshape2)
+library(cowplot)
+library(dplyr)
+library(circlize)
+library(foreach)
+library(doParallel)
+library(data.table)
+
+
 
 ################################################################################
 # Themes and saved data

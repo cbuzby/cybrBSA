@@ -12,7 +12,7 @@ short-read sequencing as a weighted gaussian rather than mean.
 \usage{
 cybr_weightedgauss(myx)
 
-tibble %>%
+tibble \%>\%
   summarize(frollapply(FUN = cybr_weightedgauss, n = 100, myx))
 }
 %- maybe also 'usage' for other objects documented here.
@@ -52,7 +52,7 @@ Cassandra Buzby
 require(dplyr)
 require(data.table)
 
-iris %>%
+iris \%>\%
   summarize(frollapply(Sepal.Length, FUN = cybr_weightedgauss, n = 10))
 
 ## The function is currently defined as

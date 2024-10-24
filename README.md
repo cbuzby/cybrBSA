@@ -2,6 +2,7 @@
 R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment. For more information, please see pre-print at doi: or our [epicQTL](https://github.com/Siegallab/epicQTL) github. Please install by running the following in R:
 
 ```
+#install.packages("devtools")
 library(devtools)
 install_github("cbuzby/cybrBSA")
 ```

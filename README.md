@@ -180,7 +180,7 @@ Perm1contrasts %>% na.omit() %>%
 
 Find 5% quantile for each coefficient (labeled Factor):
 ```
-permuted_glm_all %>% ungroup() %>% group_by(Factor) %>% quantile(summary, 0.95)
+permuted_glm_all %>% ungroup() %>% group_by(Factor) %>% summarize(q5 = quantile(summary, 0.95))
 ```
 
 ### Call Peaks

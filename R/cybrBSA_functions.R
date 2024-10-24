@@ -1,14 +1,14 @@
 
 #Load packages
-library(ggplot2)
-library(tidyr)
-library(reshape2)
-library(cowplot)
-library(dplyr)
-library(circlize)
-library(foreach)
-library(doParallel)
-library(data.table)
+require(ggplot2)
+require(tidyr)
+require(reshape2)
+require(cowplot)
+require(dplyr)
+require(circlize)
+require(foreach)
+require(doParallel)
+require(data.table)
 
 
 ################################################################################

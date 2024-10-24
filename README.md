@@ -204,16 +204,3 @@ processed_glm_all %>%
   ggplot(aes(x = POS, y = abs(summary), color = Factor)) + geom_line() +
   facet_grid(~CHROM, space = "free", scales = "free") + ggtitle("BSA Bulk Z Scores")
 ```
-
-### Circos Plot
-Interactions with a fixed chromosome can be visualized using `cybr_circos()`, which takes in data frames for glm outputs for each fixed chromosome and (optional) peak lists for each fixed chromosome. Circos will draw the interactions with either chromosome 1 or 8; new chromosomes will be added in future releases.
-```{r}
-#Ensure that data frame contains the correct column names for this function:
-processed_glm_all$label <- processed_glm_all$Factor
-processed_glm_all <- processed_glm_all %>% select(-Factor)
-
-#Plot:
-cybr_circos2(d1 = processed_glm_all, 
-            d8 = processed_glm_all,
-            peaklist8 = testpeaks)
-```

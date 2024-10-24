@@ -2,7 +2,9 @@
 R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment. For more information, please see pre-print at doi: or our [epicQTL](https://github.com/Siegallab/epicQTL) github. Please install by running the following in R:
 
 ```
-library(devtools)
+#install.packages("devtools")
+
+require(devtools)
 install_github("cbuzby/cybrBSA")
 ```
 
@@ -13,9 +15,11 @@ install_github("cbuzby/cybrBSA")
 
 _cybrBSA_ takes in a data frame of variants (REF and ALT alleles) and their counts per sequencing bulk. 
 
-Bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
+Below is the bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
 
-```{bash, eval = FALSE}
+```
+#!/bin/bash
+
 module load gatk/4.2.0.0
 
 gatk VariantsToTable \
@@ -31,9 +35,9 @@ gatk VariantsToTable \
 
 ### Variant Table Processing
 
-The following file is a truncated version of the raw data which includes only Chr XI. For the full dataset, please visit [epicQTL](https://github.com/Siegallab/epicQTL) and replace `AllCuSO4.SortedCat.vcf.output.table` with unzipped [rawdata](https://github.com/Siegallab/epicQTL/blob/main/BSA_Analysis/Input/AllCuSO4.REF_.SortedCat.vcf.output.zip)
+The following file is a truncated version of the raw data which includes only Chr XI. For the full dataset, please visit [epicQTL](https://github.com/Siegallab/epicQTL) and replace `XI.SortedCat.vcf.output.table` with unzipped [rawdata](https://github.com/Siegallab/epicQTL/blob/main/BSA_Analysis/Input/AllCuSO4.REF_.SortedCat.vcf.output.zip)
 ```{r}
-mydatatotest = "AllCuSO4.SortedCat.vcf.output.table"
+mydatatotest = "XI.SortedCat.vcf.output.table"
 
 cybrInputGATKTable(mydatatotest) %>% mutate(Coverage = as.numeric(AD.REF) + as.numeric(AD.ALT)) %>%
   select(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) -> rawdata
@@ -54,7 +58,7 @@ rawdata %>%
 ```
 
 ### Smooth Data
-Next, smooth data using `cybr_weightedgass()`, which will apply a weighted gaussian that uses n/10 as the standard deviation.
+Next, smooth data using `cybr_weightedgauss()`, which will apply a weighted gaussian that uses n/10 as the standard deviation.
 
 ```{r}
 rawdata_called %>% group_by(Dataset, CHROM, Allele) %>% arrange(POS) %>%
@@ -86,11 +90,12 @@ contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
 
 First, isolate a single position and run the glm or glmer to verify the number of output coefficients and labels to include:
 ```
-test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
-W = SmoothCount
-F = "Allele ~ Bulk * Parent"
+head(unique(rawdata_glm_prep$POS)) #choose a position that does not include NAs
 
-testg <- glm(data = test, formula = F, weights = W, family = "binomial")
+test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
+Form = "Allele ~ Bulk * Parent"
+
+testg <- glm(data = test, formula = Form, weights = SmoothCount, family = "binomial")
 summary(testg)
 ```
 
@@ -105,7 +110,7 @@ rawdata_glm_prep %>% na.omit() %>%
                              Bulk = Bulk,
                              Parent = Parent,
                              #Rep = Rep, #any parameters not used should NOT be included
-                             W = SmoothCount,
+                             W = SmoothCount, #use the weights variable from test
                              formula = "Allele ~ Bulk * Parent",
                              outputlength = 4),
             #MAKE SURE THIS IS THE SAME LENGTH AS OUTPUT LENGTH
@@ -200,13 +205,13 @@ processed_glm_all %>%
 ```
 
 ### Circos Plot
-Interactions with a fixed chromosome can be visualized using `cybr_circos()`, which takes in data frames for 
+Interactions with a fixed chromosome can be visualized using `cybr_circos()`, which takes in data frames for glm outputs for each fixed chromosome and (optional) peak lists for each fixed chromosome. Circos will draw the interactions with either chromosome 1 or 8; new chromosomes will be added in future releases.
 ```{r}
 #Ensure that data frame contains the correct column names for this function:
 processed_glm_all$label <- processed_glm_all$Factor
 processed_glm_all <- processed_glm_all %>% select(-Factor)
 
-Plot:
+#Plot:
 cybr_circos2(d1 = processed_glm_all, 
             d8 = processed_glm_all,
             peaklist8 = testpeaks)

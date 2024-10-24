@@ -389,12 +389,11 @@ cybrQualityFilter <- function(gatkdf, GQcutoff = 98, cleandata = TRUE){
 } #*
 
 ### Convert Parental VCFs to Data Frame
-cybrConvertParentalAlleles <- function(ParentFiles = c("Wine", "Oak"),
-                                       Parents = ParentFiles, Truncate = TRUE, yeast = TRUE){
-  temparent <- list()
-  mergeparents <- foreach(i=1:length(ParentFiles), .combine=rbind) %dopar% {
-    ParentFiles[i] %>% mutate(parent = Parents[i])
-  }
+cybrConvertParentalAlleles <- function(P1 = Wine, P2 = Oak,
+                                       P1l = "Wine", P2l = "Oak", Truncate = TRUE, yeast = TRUE){
+
+  P1 %>% mutate(parent = P1l) -> P1
+  P2 %>% mutate(parent = P2l) %>% rbind(P1) -> mergeparents
 
   if(yeast == TRUE){
     ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
@@ -417,8 +416,8 @@ cybrConvertParentalAlleles <- function(ParentFiles = c("Wine", "Oak"),
   ParentalVCF %>% pivot_wider(names_from = parent, values_from = ALT) -> SNPids
 
   SNPids$Type <- 0
-  for(i in Parents){
 
+  for(i in c(P1l, P2l)){
     #filter rows in which all values of columns of the parent NOT selected are NA
     select(SNPids,-i, -CHROM, -POS, -REF) -> tempdf
     tempdf$Any_NA <- apply(tempdf, 1, function(x) anyNA(x))
@@ -436,7 +435,7 @@ cybrConvertParentalAlleles <- function(ParentFiles = c("Wine", "Oak"),
 
 } #*
 
-cybrConvertParentalAlleles_dep <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
+cybrConvertParentalAlleles_text <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
                                        Parents = gsub("_VCF.txt","", ParentFiles), Truncate = TRUE, yeast = TRUE){
   temparent <- list()
   mergeparents <- foreach(i=1:length(ParentFiles), .combine=rbind) %dopar% {

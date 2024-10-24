@@ -54,7 +54,7 @@ rawdata %>%
 ```
 
 ### Smooth Data
-Next, smooth data using `cybr_weightedgass()`, which will apply a weighted gaussian that uses n/10 as the standard deviation.
+Next, smooth data using `cybr_weightedgauss()`, which will apply a weighted gaussian that uses n/10 as the standard deviation.
 
 ```{r}
 rawdata_called %>% group_by(Dataset, CHROM, Allele) %>% arrange(POS) %>%

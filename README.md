@@ -15,9 +15,11 @@ install_github("cbuzby/cybrBSA")
 
 _cybrBSA_ takes in a data frame of variants (REF and ALT alleles) and their counts per sequencing bulk. 
 
-Bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
+Below is the bash script to convert the VCF, keeping specific fields listed after -GF. AD (allele depth) is necessary for all analysis, as this is the read count to analyze in the glm. GQ (genome quality) can be used as a filter in the `cybrQualityFilter()` function. DP and PL are optional. myfile is the name of the VCF to convert.
 
-```{bash, eval = FALSE}
+```
+#!/bin/bash
+
 module load gatk/4.2.0.0
 
 gatk VariantsToTable \

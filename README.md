@@ -35,7 +35,7 @@ gatk VariantsToTable \
 
 ### Variant Table Processing
 
-The following file is a truncated version of the raw data which includes only Chr XI. For the full dataset, please visit [epicQTL](https://github.com/Siegallab/epicQTL) and replace `AllCuSO4.SortedCat.vcf.output.table` with unzipped [rawdata](https://github.com/Siegallab/epicQTL/blob/main/BSA_Analysis/Input/AllCuSO4.REF_.SortedCat.vcf.output.zip)
+The following file is a truncated version of the raw data which includes only Chr XI. For the full dataset, please visit [epicQTL](https://github.com/Siegallab/epicQTL) and replace `XI.SortedCat.vcf.output.table` with unzipped [rawdata](https://github.com/Siegallab/epicQTL/blob/main/BSA_Analysis/Input/AllCuSO4.REF_.SortedCat.vcf.output.zip)
 ```{r}
 mydatatotest = "XI.SortedCat.vcf.output.table"
 

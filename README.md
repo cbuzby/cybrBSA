@@ -79,7 +79,8 @@ rawdata_smoothed %>%
     mutate(Dataset = gsub(".fastq", "", Dataset)) %>%
     mutate(Dataset = gsub("Unselected", "Unselected_", Dataset)) %>%
     mutate(Dataset = gsub("Selected", "Selected_", Dataset)) %>%
-  separate(Dataset, into = c("Bulk", "Parent"), sep = "_") %>% 
+  separate(Dataset, into = c("Bulk", "Parent"), sep = "_") %>%
+  na.omit() %>% 
   mutate_if(is.character, as.factor) -> rawdata_glm_prep
 ```
 Often, the contrasts of the coefficient factors might need to be adjusted, depending on the question interrogated. We ensure that the unselected bulk is labeled 0 and the selected 1, for ease of interpretation of our results.
@@ -92,8 +93,6 @@ contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
 
 First, isolate a single position and run the glm or glmer to verify the number of output coefficients and labels to include:
 ```
-head(unique(rawdata_glm_prep$POS)) #choose a position that does not include NAs
-
 test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS),]
 Form = "Allele ~ Bulk * Parent"
 

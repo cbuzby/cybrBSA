@@ -94,7 +94,7 @@ First, isolate a single position and run the glm or glmer to verify the number o
 ```
 head(unique(rawdata_glm_prep$POS)) #choose a position that does not include NAs
 
-test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS)),]
+test <- rawdata_glm_prep[rawdata_glm_prep$POS == min(rawdata_glm_prep$POS),]
 Form = "Allele ~ Bulk * Parent"
 
 testg <- glm(data = test, formula = Form, weights = SmoothCount, family = "binomial")

@@ -280,7 +280,54 @@ cybrQualityFilter <- function(gatkdf, GQcutoff = 98, cleandata = TRUE){
 } #*
 
 ### Convert Parental VCFs to Data Frame
-cybrConvertParentalAlleles <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
+cybrConvertParentalAlleles <- function(ParentFiles = c("Wine", "Oak"),
+                                       Parents = ParentFiles, Truncate = TRUE, yeast = TRUE){
+  temparent <- list()
+  mergeparents <- foreach(i=1:length(ParentFiles), .combine=rbind) %dopar% {
+    ParentFiles[i] %>% mutate(parent = Parents[i])
+  }
+
+  if(yeast == TRUE){
+    ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+                                           "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "M"),
+                           CHROM = c("NC_001133.9", "NC_001134.8", "NC_001135.5", "NC_001136.10",
+                                     "NC_001137.3", "NC_001138.5", "NC_001139.9", "NC_001140.6",
+                                     "NC_001141.2", "NC_001142.9", "NC_001143.9", "NC_001144.5",
+                                     "NC_001145.3", "NC_001146.8", "NC_001147.6", "NC_001148.4", "NC_001224.1"))
+
+    rbind(mergeparents) %>% arrange(CHROM, POS) %>%
+      select(CHROM, POS, REF, ALT, parent) %>%
+      merge(ChromKey) %>% select(-CHROM) %>%
+      mutate(CHROM = chromosomes) %>% select(-chromosomes) -> ParentalVCF
+
+  }else{
+    rbind(mergeparents) %>% arrange(CHROM, POS) %>%
+      select(CHROM, POS, REF, ALT, parent) -> ParentalVCF
+  }
+
+  ParentalVCF %>% pivot_wider(names_from = parent, values_from = ALT) -> SNPids
+
+  SNPids$Type <- 0
+  for(i in Parents){
+
+    #filter rows in which all values of columns of the parent NOT selected are NA
+    select(SNPids,-i, -CHROM, -POS, -REF) -> tempdf
+    tempdf$Any_NA <- apply(tempdf, 1, function(x) anyNA(x))
+    SNPids$Type[which(tempdf$Any_NA)] <- i
+    rm(tempdf)
+  }
+
+
+  #Collect it to output
+  if(Truncate == TRUE){
+    SNPids %>% select(CHROM, POS,  Type) %>% filter(Type != 0) -> SNPids
+  }
+
+  return(SNPids)
+
+} #*
+
+cybrConvertParentalAlleles_dep <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
                                        Parents = gsub("_VCF.txt","", ParentFiles), Truncate = TRUE, yeast = TRUE){
   temparent <- list()
   mergeparents <- foreach(i=1:length(ParentFiles), .combine=rbind) %dopar% {
@@ -325,7 +372,7 @@ cybrConvertParentalAlleles <- function(ParentFiles = c("Wine_VCF.txt", "Oak_VCF.
 
   return(SNPids)
 
-} #*
+}
 
 ################################################################################
 ## GLM Analysis Functions

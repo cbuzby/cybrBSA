@@ -35,7 +35,7 @@ gatk VariantsToTable \
 
 ### Variant Table Processing
 
-All data to test is in the folder labeled TestData/. Please download to use.
+All data to test is in the folder [TestFiles]{https://github.com/cbuzby/cybrBSA/tree/main/TestFiles}. Please download all to use.
 
 The following file is a truncated version of the raw data which includes only Chr XI. For the full dataset, please visit [epicQTL](https://github.com/Siegallab/epicQTL) and replace `XI.SortedCat.vcf.output.table` with unzipped [rawdata](https://github.com/Siegallab/epicQTL/blob/main/BSA_Analysis/Input/AllCuSO4.REF_.SortedCat.vcf.output.zip)
 ```{r}

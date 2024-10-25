@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Cassandra Buzby" />
+
+<meta name="date" content="2024-10-25" />
+
+<title>epic-QTL Data</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">epic-QTL Data</h1>
+<h4 class="author">Cassandra Buzby</h4>
+<h4 class="date">2024-10-25</h4>
+
+
+
+<div id="load-and-process-raw-data" class="section level2">
+<h2>Load and process raw data</h2>
+<p><code>mydatatotest</code> is the path/name of the raw output.table
+file that can be processed by <code>cybrInputGATKTable()</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>mydatatotest <span class="ot">=</span> <span class="st">&quot;TestFiles/XI.SortedCat.vcf.output.table&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">cybrInputGATKTable</span>(mydatatotest) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">Coverage =</span> <span class="fu">as.numeric</span>(AD.REF) <span class="sc">+</span> <span class="fu">as.numeric</span>(AD.ALT)) <span class="sc">%&gt;%</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="fu">select</span>(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) <span class="ot">-&gt;</span> rawdata</span></code></pre></div>
+<p>Next, convert the parental alleles either with oak and wine
+(included) or as text files.</p>
+<p>Note: <code>cybrConvertParentalAlleles_text</code>
+<strong>must</strong> be run from within the working directory of the
+Wine_VCF.txt and Oak_VCF.txt directories, as it uses the names of the
+files to fill in the allele names downstream.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">&quot;TestFiles&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>parentSNPids <span class="ot">&lt;-</span> <span class="fu">cybrConvertParentalAlleles_text</span>(<span class="at">Truncate =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>To avoid this issue, use <code>cybrConvertParentalAlleles_n</code>
+with .Rdata files instead:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>parentSNPids <span class="ot">&lt;-</span> <span class="fu">cybrConvertParentalAlleles_n</span>(<span class="at">Truncate =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">head</span>(parentSNPids)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 3</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   CHROM   POS Type </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt; &lt;int&gt; &lt;chr&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 1 I       244 Wine </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 2 I       328 Wine </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 3 I       604 Wine </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 4 I       610 Wine </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 5 I       618 Wine </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; 6 I       627 Wine</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>rawdata <span class="sc">%&gt;%</span> </span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="fu">merge</span>(parentSNPids) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">&quot;HNGLVDRXY&quot;</span>, Dataset)) <span class="sc">%&gt;%</span> <span class="co">#Filter for smaller dataset</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">REFW =</span> <span class="fu">as.numeric</span>(Type <span class="sc">==</span> <span class="st">&quot;Wine&quot;</span>), <span class="at">REFO =</span> <span class="fu">as.numeric</span>(Type <span class="sc">==</span> <span class="st">&quot;Oak&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="fu">group_by</span>(Dataset, CHROM, POS) <span class="sc">%&gt;%</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Wine =</span> <span class="fu">max</span>(REFW <span class="sc">*</span> <span class="fu">as.numeric</span>(AD.REF), REFO <span class="sc">*</span> <span class="fu">as.numeric</span>(AD.ALT)),</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>         <span class="at">Oak =</span> <span class="fu">max</span>(REFW <span class="sc">*</span> <span class="fu">as.numeric</span>(AD.ALT), REFO <span class="sc">*</span> <span class="fu">as.numeric</span>(AD.REF))) <span class="sc">%&gt;%</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="fu">select</span>(Dataset, POS, CHROM, Coverage, Wine, Oak) <span class="sc">%&gt;%</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">c</span>(Oak, Wine), <span class="at">names_to =</span> <span class="st">&quot;Allele&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;Reads&quot;</span>) <span class="ot">-&gt;</span> rawdata_called</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="fu">head</span>(rawdata_called)</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; # Groups:   Dataset, CHROM, POS [3]</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;   Dataset                                       POS CHROM Coverage Allele Reads</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                       &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt;</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; 1 HNGLVDRXY_n01_CuSO4_CSSI_SelectedC.fastq   100379 XI         151 Oak       59</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; 2 HNGLVDRXY_n01_CuSO4_CSSI_SelectedC.fastq   100379 XI         151 Wine      92</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; 3 HNGLVDRXY_n01_CuSO4_CSSI_UnselectedC.fastq 100379 XI         183 Oak      104</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; 4 HNGLVDRXY_n01_CuSO4_CSSI_UnselectedC.fastq 100379 XI         183 Wine      79</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt; 5 HNGLVDRXY_n01_CuSO4_CSSI_UnselectedA.fastq 100379 XI         128 Oak       68</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt; 6 HNGLVDRXY_n01_CuSO4_CSSI_UnselectedA.fastq 100379 XI         128 Wine      60</span></span></code></pre></div>
+</div>
+<div id="smooth-data-based-on-gaussian-kernel" class="section level2">
+<h2>Smooth data based on gaussian kernel</h2>
+<p>Sequencing reads are stochastic, and to smooth our data for accuracy,
+we use a gaussian kernel in <code>cybr_weightedgass()</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>rawdata_called <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(Dataset, CHROM, Allele) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(POS) <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">reframe</span>(<span class="at">POS =</span> POS, </span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>          <span class="at">SmoothCount =</span> <span class="fu">ceiling</span>(<span class="fu">frollapply</span>(Reads, <span class="at">n =</span> <span class="dv">200</span>, <span class="at">FUN =</span> cybr_weightedgauss, <span class="at">align =</span> <span class="st">&quot;center&quot;</span>))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>          ) <span class="ot">-&gt;</span> rawdata_smoothed </span></code></pre></div>
+<p>Keep in mind that the indices corresponding to the first half of the
+window size (n) will be NAs</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">head</span>(rawdata_smoothed)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt;   Dataset                                  CHROM Allele   POS SmoothCount</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                    &lt;chr&gt; &lt;chr&gt;  &lt;int&gt;       &lt;dbl&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 1 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      139          NA</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; 2 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      207          NA</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 3 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      237          NA</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 4 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      243          NA</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 5 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      249          NA</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; 6 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak      250          NA</span></span></code></pre></div>
+<p>With NAs removed:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>rawdata_smoothed <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;   Dataset                                  CHROM Allele   POS SmoothCount</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                    &lt;chr&gt; &lt;chr&gt;  &lt;int&gt;       &lt;dbl&gt;</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 1 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13354          23</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 2 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13362          23</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; 3 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13443          23</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 4 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13542          23</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 5 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13712          23</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 6 HNGLVDRXY_n01_CuSO4_CSSI_SelectedA.fastq XI    Oak    13740          23</span></span></code></pre></div>
+</div>
+<div id="format-data-for-glm" class="section level2">
+<h2>Format data for glm</h2>
+<p>This dataset from <em>Buzby et al 2024</em> is labeled with
+non-uniform sequencing run names. Here we filter the data for a single
+run, which corresponds with the specific parents in copper
+resistance.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Pick out the specific groups of the dataset</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>rawdata_smoothed <span class="sc">%&gt;%</span> </span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Dataset =</span> <span class="fu">gsub</span>(<span class="st">&quot;HNGLVDRXY_n01_CuSO4_CSSI_&quot;</span>, <span class="st">&quot;&quot;</span>, Dataset)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Dataset =</span> <span class="fu">gsub</span>(<span class="st">&quot;.fastq&quot;</span>, <span class="st">&quot;&quot;</span>, Dataset)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Dataset =</span> <span class="fu">gsub</span>(<span class="st">&quot;Unselected&quot;</span>, <span class="st">&quot;Unselected_&quot;</span>, Dataset)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Dataset =</span> <span class="fu">gsub</span>(<span class="st">&quot;Selected&quot;</span>, <span class="st">&quot;Selected_&quot;</span>, Dataset)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  <span class="fu">separate</span>(Dataset, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">&quot;Bulk&quot;</span>, <span class="st">&quot;Parent&quot;</span>), <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.character, as.factor) <span class="ot">-&gt;</span> rawdata_glm_prep</span></code></pre></div>
+<p>The glm() finds effects of the Bulk (selected or not selected),
+Parental Background (Oak or Wine), and Interaction terms. Selection is
+set to 0 or 1 to for ease of interpretation. Because the parents are
+equal, we set their contrasts to -0.5 and 0.5.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">contrasts</span>(rawdata_glm_prep<span class="sc">$</span>Parent) <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">0.5</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">contrasts</span>(rawdata_glm_prep<span class="sc">$</span>Bulk) <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">0</span>))</span></code></pre></div>
+</div>
+<div id="run-logistic-regression" class="section level2">
+<h2>Run logistic regression</h2>
+<p>Here you can use either <code>glm_cb2_short()</code> or
+<code>glmer_cb2_short()</code>, if your model is mixed effect.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Run full dataset</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>rawdata_glm_prep <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="fu">filter</span>(CHROM <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;M&quot;</span>, <span class="st">&quot;I&quot;</span>) <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="fu">group_by</span>(CHROM, POS) <span class="sc">%&gt;%</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.character, as.factor) <span class="sc">%&gt;%</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">summary =</span> <span class="fu">glm_cb2_short</span>(<span class="at">Allele =</span> Allele,</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>                             <span class="at">Bulk =</span> Bulk,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>                             <span class="at">Parent =</span> Parent,</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>                             <span class="co">#Rep = Rep,</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>                             <span class="at">W =</span> SmoothCount,</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>                             <span class="at">formula =</span> <span class="st">&quot;Allele ~ Bulk * Parent&quot;</span>,</span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>                             <span class="at">outputlength =</span> <span class="dv">4</span>),</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>            <span class="co">#MAKE SURE THIS IS THE SAME LENGTH AS OUTPUT LENGTH</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a>            <span class="at">Factor =</span> (<span class="fu">c</span>(<span class="st">&quot;Intercept&quot;</span>, <span class="st">&quot;Bulk&quot;</span>, <span class="st">&quot;Parent&quot;</span>, <span class="st">&quot;Interaction&quot;</span>))) <span class="ot">-&gt;</span> processed_glm_all</span></code></pre></div>
+</div>
+<div id="permutations" class="section level2">
+<h2>Permutations</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>rawdata_glm_prep <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="fu">filter</span>(Bulk <span class="sc">==</span> <span class="st">&quot;Unselected&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="fu">filter</span>(CHROM <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;M&quot;</span>, <span class="st">&quot;I&quot;</span>) <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="fu">group_by</span>(CHROM, POS) <span class="sc">%&gt;%</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Allele, <span class="at">values_from =</span> SmoothCount) <span class="sc">%&gt;%</span> <span class="fu">unnest</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">label =</span> <span class="fu">paste</span>(CHROM, POS, <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>  <span class="fu">group_by</span>(Bulk, Parent) <span class="sc">%&gt;%</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">NewPOS =</span> <span class="fu">sample</span>(label),</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>            <span class="at">Oak =</span> Oak,</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>            <span class="at">Wine =</span> Wine,</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>            <span class="at">Parent =</span> Parent) <span class="sc">%&gt;%</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  <span class="fu">separate</span>(NewPOS, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">&quot;CHROM&quot;</span>, <span class="st">&quot;POS&quot;</span>), <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Bulk =</span> <span class="st">&quot;Selected&quot;</span>) <span class="ot">-&gt;</span> rd_shuffled_selected</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>rawdata_glm_prep <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>  <span class="fu">filter</span>(Bulk <span class="sc">==</span> <span class="st">&quot;Unselected&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>  <span class="fu">filter</span>(CHROM <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;M&quot;</span>, <span class="st">&quot;I&quot;</span>) <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>  <span class="fu">group_by</span>(CHROM, POS) <span class="sc">%&gt;%</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Allele, <span class="at">values_from =</span> SmoothCount) <span class="sc">%&gt;%</span> <span class="fu">unnest</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">label =</span> <span class="fu">paste</span>(CHROM, POS, <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>  <span class="fu">group_by</span>(Bulk, Parent) <span class="sc">%&gt;%</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">NewPOS =</span> <span class="fu">sample</span>(label),</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>            <span class="at">Oak =</span> Oak,</span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>            <span class="at">Wine =</span> Wine,</span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a>            <span class="at">Parent =</span> Parent) <span class="sc">%&gt;%</span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a>  <span class="fu">separate</span>(NewPOS, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">&quot;CHROM&quot;</span>, <span class="st">&quot;POS&quot;</span>), <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Bulk =</span> <span class="st">&quot;Unselected&quot;</span>) <span class="ot">-&gt;</span> rd_shuffled_unselected</span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="fu">rbind</span>(rd_shuffled_selected,rd_shuffled_unselected) <span class="sc">%&gt;%</span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">c</span>(Oak, Wine), <span class="at">names_to =</span> <span class="st">&quot;Allele&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;SmoothCount&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">unnest</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">POS =</span> <span class="fu">as.numeric</span>(POS)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.character, as.factor) <span class="ot">-&gt;</span> Perm1contrasts</span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co">#Set contrasts for experiment</span></span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="fu">contrasts</span>(Perm1contrasts<span class="sc">$</span>Parent) <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">0.5</span>))</span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a><span class="fu">contrasts</span>(Perm1contrasts<span class="sc">$</span>Bulk) <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">0</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>processed_glm_all<span class="sc">$</span>zscore <span class="ot">&lt;-</span> processed_glm_all<span class="sc">$</span>summary</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>processed_glm_all<span class="sc">$</span>CSS <span class="ot">&lt;-</span> <span class="st">&quot;I&quot;</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>processed_glm_all<span class="sc">$</span>label <span class="ot">&lt;-</span> processed_glm_all<span class="sc">$</span>Factor</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>testpeaks <span class="ot">&lt;-</span> <span class="fu">cybr_lmpeaks</span>(processed_glm_all[processed_glm_all<span class="sc">$</span>Factor <span class="sc">==</span> <span class="st">&quot;Bulk&quot;</span>,], <span class="at">width =</span> <span class="dv">300</span>)</span></code></pre></div>
+</div>
+<div id="visualization" class="section level1">
+<h1>Visualization</h1>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>processed_glm_all <span class="sc">%&gt;%</span> </span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> POS, <span class="at">y =</span> <span class="fu">abs</span>(summary), <span class="at">color =</span> Factor)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="sc">~</span>CHROM, <span class="at">space =</span> <span class="st">&quot;free&quot;</span>, <span class="at">scales =</span> <span class="st">&quot;free&quot;</span>) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="st">&quot;BSA Bulk Z Scores&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>processed_glm_all<span class="sc">$</span>label <span class="ot">&lt;-</span> processed_glm_all<span class="sc">$</span>Factor</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>processed_glm_all <span class="ot">&lt;-</span> processed_glm_all <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Factor)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>d1 <span class="ot">=</span> processed_glm_all</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">cybr_circos2</span>(<span class="at">d1 =</span> processed_glm_all, </span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>            <span class="at">d8 =</span> processed_glm_all,</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>            <span class="at">peaklist8 =</span> testpeaks)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

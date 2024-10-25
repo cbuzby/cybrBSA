@@ -8,3 +8,5 @@ Description: Converts a GATK VCF table into dataframe of logistic regression Z-s
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+VignetteBuilder: knitr
+Suggests: knitr, rmarkdown

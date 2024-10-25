@@ -1,14 +1,19 @@
 ---
-title: "cybrBSA2"
+title: "epic-QTL Data"
 author: "Cassandra Buzby"
-date: "October 2024"
-output: html_document
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{epic-QTL Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-Making the BSA scripts more efficient with functions to actually pipe with dplyr
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 
 #library(devtools)
 #install_github("cbuzby/cybrBSA")
@@ -28,19 +33,85 @@ library(RColorBrewer)
 library(circlize)
 
 ggplot2::theme_set(theme_light())
-
 ```
 
-# Visualized Data for Github
+```{r, include = FALSE}
+cybrConvertParentalAlleles_n <- function(P1 = Wine, P2 = Oak,
+                                       P1l = "Wine", P2l = "Oak", Truncate = TRUE, yeast = TRUE){
 
-```{r}
-mydatatotest = "AllCuSO4.SortedCat.vcf.output.table"
+  P1 %>% mutate(parent = P1l) -> P1
+  P2 %>% mutate(parent = P2l) %>% rbind(P1) -> mergeparents
+
+  if(yeast == TRUE){
+    ChromKey <- data.frame(chromosomes = c("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+                                           "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "M"),
+                           CHROM = c("NC_001133.9", "NC_001134.8", "NC_001135.5", "NC_001136.10",
+                                     "NC_001137.3", "NC_001138.5", "NC_001139.9", "NC_001140.6",
+                                     "NC_001141.2", "NC_001142.9", "NC_001143.9", "NC_001144.5",
+                                     "NC_001145.3", "NC_001146.8", "NC_001147.6", "NC_001148.4", "NC_001224.1"))
+
+    rbind(mergeparents) %>% arrange(CHROM, POS) %>%
+      select(CHROM, POS, REF, ALT, parent) %>%
+      merge(ChromKey) %>% select(-CHROM) %>%
+      mutate(CHROM = chromosomes) %>% select(-chromosomes) -> ParentalVCF
+
+  }else{
+    rbind(mergeparents) %>% arrange(CHROM, POS) %>%
+      select(CHROM, POS, REF, ALT, parent) -> ParentalVCF
+  }
+
+  ParentalVCF %>% pivot_wider(names_from = parent, values_from = ALT) -> SNPids
+
+  SNPids$Type <- 0
+
+  for(i in c(P1l, P2l)){
+    #filter rows in which all values of columns of the parent NOT selected are NA
+    select(SNPids,-i, -CHROM, -POS, -REF) -> tempdf
+    tempdf$Any_NA <- apply(tempdf, 1, function(x) anyNA(x))
+    SNPids$Type[which(tempdf$Any_NA)] <- i
+    rm(tempdf)
+  }
+
+
+  #Collect it to output
+  if(Truncate == TRUE){
+    SNPids %>% select(CHROM, POS,  Type) %>% filter(Type != 0) -> SNPids
+  }
+
+  return(SNPids)
+
+} #*
+```
+
+## Load and process raw data
+
+`mydatatotest` is the path/name of the raw output.table file that can be processed by `cybrInputGATKTable()`. 
+```{r, message=FALSE, warning=FALSE}
+mydatatotest = "TestFiles/XI.SortedCat.vcf.output.table"
 
 cybrInputGATKTable(mydatatotest) %>% mutate(Coverage = as.numeric(AD.REF) + as.numeric(AD.ALT)) %>%
   select(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) -> rawdata
 
+```
+
+Next, convert the parental alleles either with oak and wine (included) or as text files. 
+
+Note: `cybrConvertParentalAlleles_text` **must** be run from within the working directory of the Wine_VCF.txt and Oak_VCF.txt directories, as it uses the names of the files to fill in the allele names downstream. 
+
+```{r, eval = FALSE}
+setwd("TestFiles")
+parentSNPids <- cybrConvertParentalAlleles_text(Truncate = TRUE)
+```
+
+To avoid this issue, use `cybrConvertParentalAlleles_n` with .Rdata files instead:
+
+```{r, message=FALSE, warning=FALSE}
 parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
 
+head(parentSNPids)
+```
+
+```{r, message=FALSE, warning=FALSE}
 rawdata %>% 
   merge(parentSNPids) %>% 
   filter(grepl("HNGLVDRXY", Dataset)) %>% #Filter for smaller dataset
@@ -50,10 +121,15 @@ rawdata %>%
          Oak = max(REFW * as.numeric(AD.ALT), REFO * as.numeric(AD.REF))) %>%
   select(Dataset, POS, CHROM, Coverage, Wine, Oak) %>%
   pivot_longer(c(Oak, Wine), names_to = "Allele", values_to = "Reads") -> rawdata_called
+
+head(rawdata_called)
 ```
 
+## Smooth data based on gaussian kernel
 
-```{r}
+Sequencing reads are stochastic, and to smooth our data for accuracy, we use a gaussian kernel in `cybr_weightedgass()`. 
+
+```{r, message=FALSE, warning=FALSE}
 rawdata_called %>% group_by(Dataset, CHROM, Allele) %>% arrange(POS) %>%
   reframe(POS = POS, 
           SmoothCount = ceiling(frollapply(Reads, n = 200, FUN = cybr_weightedgauss, align = "center"))
@@ -61,8 +137,21 @@ rawdata_called %>% group_by(Dataset, CHROM, Allele) %>% arrange(POS) %>%
 
 ```
 
+Keep in mind that the indices corresponding to the first half of the window size (n) will be NAs
+```{r, message=FALSE, warning=FALSE}
+head(rawdata_smoothed)
+```
 
-```{r}
+With NAs removed:
+```{r, message=FALSE, warning=FALSE}
+rawdata_smoothed %>% na.omit() %>% head()
+```
+
+## Format data for glm
+
+This dataset from _Buzby et al 2024_ is labeled with non-uniform sequencing run names. Here we filter the data for a single run, which corresponds with the specific parents in copper resistance.
+
+```{r, message=FALSE, warning=FALSE}
 # Pick out the specific groups of the dataset
 rawdata_smoothed %>% 
     mutate(Dataset = gsub("HNGLVDRXY_n01_CuSO4_CSSI_", "", Dataset)) %>%
@@ -73,10 +162,18 @@ rawdata_smoothed %>%
   mutate_if(is.character, as.factor) -> rawdata_glm_prep
 ```
 
-```{r}
+The glm() finds effects of the Bulk (selected or not selected), Parental Background (Oak or Wine), and Interaction terms. Selection is set to 0 or 1 to for ease of interpretation. Because the parents are equal, we set their contrasts to -0.5 and 0.5.
+
+```{r, message=FALSE, warning=FALSE}
 contrasts(rawdata_glm_prep$Parent) <- matrix(c(-0.5, 0.5))
 contrasts(rawdata_glm_prep$Bulk) <- matrix(c(1,0))
+```
 
+## Run logistic regression
+
+Here you can use either `glm_cb2_short()` or `glmer_cb2_short()`, if your model is mixed effect.
+
+```{r, message=FALSE, warning=FALSE}
 # Run full dataset
 rawdata_glm_prep %>% na.omit() %>% 
   filter(CHROM %in% c("M", "I") == FALSE) %>%
@@ -93,8 +190,9 @@ rawdata_glm_prep %>% na.omit() %>%
             Factor = (c("Intercept", "Bulk", "Parent", "Interaction"))) -> processed_glm_all
 ```
 
+## Permutations
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 rawdata_glm_prep %>% na.omit() %>% 
   filter(Bulk == "Unselected") %>%
   filter(CHROM %in% c("M", "I") == FALSE) %>%
@@ -134,7 +232,7 @@ contrasts(Perm1contrasts$Parent) <- matrix(c(-0.5, 0.5))
 contrasts(Perm1contrasts$Bulk) <- matrix(c(1,0))
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 processed_glm_all$zscore <- processed_glm_all$summary
 processed_glm_all$CSS <- "I"
 processed_glm_all$label <- processed_glm_all$Factor
@@ -143,8 +241,9 @@ testpeaks <- cybr_lmpeaks(processed_glm_all[processed_glm_all$Factor == "Bulk",]
 
 ```
 
+# Visualization
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.width=8}
 processed_glm_all %>% 
   ggplot(aes(x = POS, y = abs(summary), color = Factor)) + geom_line() +
   facet_grid(~CHROM, space = "free", scales = "free") + ggtitle("BSA Bulk Z Scores")
@@ -152,7 +251,7 @@ processed_glm_all %>%
 
 
 
-```{r}
+```{r, include = FALSE}
 cybr_circos2 <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, 
                          maxy = NULL, color1 = "#24588A", color8 = "#ED7B01", opacity = "50"){
   
@@ -284,7 +383,7 @@ cybr_circos2 <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL,
 }
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 processed_glm_all$label <- processed_glm_all$Factor
 processed_glm_all <- processed_glm_all %>% select(-Factor)
 

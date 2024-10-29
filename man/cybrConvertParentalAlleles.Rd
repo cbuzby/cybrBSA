@@ -1,5 +1,5 @@
-\name{cybrConvertParentalAlleles_text}
-\alias{cybrConvertParentalAlleles_text}
+\name{cybrConvertParentalAlleles}
+\alias{cybrConvertParentalAlleles}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Identify parental alleles from VCF Table(s)
 %%  ~~function to do ... ~~

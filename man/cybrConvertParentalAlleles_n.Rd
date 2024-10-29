@@ -1,25 +1,29 @@
-\name{cybrConvertParentalAlleles_text}
-\alias{cybrConvertParentalAlleles_text}
+\name{cybrConvertParentalAlleles_n}
+\alias{cybrConvertParentalAlleles_n}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Identify parental alleles from VCF Table(s)
-%%  ~~function to do ... ~~
+\title{Identify parental alleles from Oak and Wine VCF Tables
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Converts output table files of Oak and Wine snps into data frame assigning each to the reference or alternate
 }
 \usage{
-cybrConvertParentalAlleles(
-    ParentFiles = c("Wine_VCF.txt", "Oak_VCF.txt"),
-    Parents = gsub("_VCF.txt","", ParentFiles),
-    Truncate = TRUE, yeast = TRUE
+cybrConvertParentalAlleles(P1 = Wine, P2 = Oak,
+          P1l = "Wine", P2l = "Oak",
+          Truncate = TRUE, yeast = TRUE
     )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{ParentFiles}{Character vector of text files to call; must be in VCF format .txt.
+  \item{P1, P2}{Character vector of text files to call; must be a loaded data
+  frame. Oak and Wine (defaults) are loaded in with package automatically for
+  R versions 3.5 or higher.
 %%     ~~Describe \code{x} here~~
 }
-  \item{Parents}{Character vector of shorthand parental names, default pulls from filenames
+  \item{P1l}{Character vector of shorthand parental names
+%%     ~~Describe \code{x} here~~
+}
+  \item{P2l}{Character vector of shorthand parental names
 %%     ~~Describe \code{x} here~~
 }
   \item{Truncate}{Boolean, if TRUE removes positions which do not align to one or the other parental genome; if FALSE keeps all positions. Truncate recommended for downstream functions.
@@ -29,8 +33,10 @@ cybrConvertParentalAlleles(
 %%     ~~Describe \code{x} here~~
 }
 }
-\details{
+\details{If you are using different parents or have text files for the output tables,
+use cybrConvertParentalAlleles_text() instead.
 %%  ~~ If necessary, more details than the description above ~~
+
 }
 \value{
 %%  ~Describe the value returned
@@ -62,7 +68,7 @@ mydf <- cybrInputGATKTable(mydatatotest)
 
 qualitydf <- cybrQualityFilter(mydf)
 
-parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
+parentSNPids <- cybrConvertParentalAlleles_n(Truncate = TRUE)
 
 testmerge <- cybrIDAlleles(BSAdfstart = qualitydf, Parentdf = parentSNPids, yeast = TRUE) %>% na.omit()
 }

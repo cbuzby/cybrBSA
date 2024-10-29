@@ -106,7 +106,7 @@ parentSNPids <- cybrConvertParentalAlleles_text(Truncate = TRUE)
 To avoid this issue, use `cybrConvertParentalAlleles_n` with .Rdata files instead:
 
 ```{r, message=FALSE, warning=FALSE}
-parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
+parentSNPids <- cybrConvertParentalAlleles_n(Truncate = TRUE)
 
 head(parentSNPids)
 ```

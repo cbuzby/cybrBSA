@@ -44,7 +44,7 @@ mydatatotest = "XI.SortedCat.vcf.output.table"
 cybrInputGATKTable(mydatatotest) %>% mutate(Coverage = as.numeric(AD.REF) + as.numeric(AD.ALT)) %>%
   select(POS, CHROM, Dataset, GQ, AD.REF, AD.ALT, Coverage) -> rawdata
 ```
-Ensure that parental alleles Oak.txt and Wine.txt are in the same folder as this script, and then run the following to call the parent of origin for each ALT allele.
+If there are two alternate alleles compared to the reference, provide a parental alleles file (Oak and Wine S cerevisiae are loaded automatically). Ensure that parental alleles (Oak_vcf.txt and Wine_vcf.txt) are in the same folder as this script, and then run the following to call the parent of origin for each ALT allele. This file should have columns for CHROM, POS, and the identity of the alternate.
 ```
 parentSNPids <- cybrConvertParentalAlleles(Truncate = TRUE)
 

@@ -1,5 +1,5 @@
 # cybrBSA
-R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment. For more information, please see pre-print at doi: or our [epicQTL](https://github.com/Siegallab/epicQTL) github. Please install by running the following in R:
+R Package for analyzing sequencing data for multilevel Bulk Segregant Analysis experiment. For more information, please see publication at [doi:iyaf026](https://doi.org/10.1093/genetics/iyaf026) or our [epicQTL](https://github.com/Siegallab/epicQTL) github. Please install by running the following in R:
 
 ```
 #install.packages("devtools")

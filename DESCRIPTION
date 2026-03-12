@@ -9,4 +9,15 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
+Imports:
+    ggplot2,
+    tidyr,
+    reshape2,
+    cowplot,
+    dplyr,
+    circlize,
+    foreach,
+    doParallel,
+    data.table,
+    lme4
 Suggests: knitr, rmarkdown

@@ -11,113 +11,113 @@ require(doParallel)
 require(data.table)
 
 #Install if not - Thank you @Thierry on stack overflow
-if(require("data.table")){
-  #print("data.table is loaded correctly")
-} else {
-  print("trying to install data.table")
-  install.packages("data.table")
-  if(require(data.table)){
-    print("data.table installed and loaded")
-  } else {
-    stop("could not install data.table")
-  }
-}
-
-if(require("doParallel")){
-  #print("doParallel is loaded correctly")
-} else {
-  print("trying to install doParallel")
-  install.packages("doParallel")
-  if(require(doParallel)){
-    print("doParallel installed and loaded")
-  } else {
-    stop("could not install doParallel")
-  }
-}
-
-if(require("foreach")){
-  #print("foreach is loaded correctly")
-} else {
-  print("trying to install foreach")
-  install.packages("foreach")
-  if(require(foreach)){
-    print("foreach installed and loaded")
-  } else {
-    stop("could not install foreach")
-  }
-}
-
-if(require("circlize")){
-  #print("circlize is loaded correctly")
-} else {
-  print("trying to install circlize")
-  install.packages("circlize")
-  if(require(circlize)){
-    print("circlize installed and loaded")
-  } else {
-    stop("could not install circlize")
-  }
-}
-
-if(require("dplyr")){
-  #print("dplyr is loaded correctly")
-} else {
-  print("trying to install dplyr")
-  install.packages("dplyr")
-  if(require(dplyr)){
-    print("dplyr installed and loaded")
-  } else {
-    stop("could not install dplyr")
-  }
-}
-
-if(require("reshape2")){
-  #print("reshape2 is loaded correctly")
-} else {
-  print("trying to install reshape2")
-  install.packages("reshape2")
-  if(require(reshape2)){
-    print("reshape2 installed and loaded")
-  } else {
-    stop("could not install reshape2")
-  }
-}
-
-if(require("tidyr")){
-  #print("tidyr is loaded correctly")
-} else {
-  print("trying to install tidyr")
-  install.packages("tidyr")
-  if(require(tidyr)){
-    print("tidyr installed and loaded")
-  } else {
-    stop("could not install tidyr")
-  }
-}
-
-if(require("cowplot")){
-  #print("cowplot is loaded correctly")
-} else {
-  print("trying to install cowplot")
-  install.packages("cowplot")
-  if(require(cowplot)){
-    print("cowplot installed and loaded")
-  } else {
-    stop("could not install cowplot")
-  }
-}
-
-if(require("ggplot2")){
-  #print("ggplot2 is loaded correctly")
-} else {
-  print("trying to install ggplot2")
-  install.packages("ggplot2")
-  if(require(ggplot2)){
-    print("ggplot2 installed and loaded")
-  } else {
-    stop("could not install ggplot2")
-  }
-}
+# if(#require("data.table")){
+#   #print("data.table is loaded correctly")
+# } else {
+#   print("trying to install data.table")
+#   install.packages("data.table")
+#   if(#require(data.table)){
+#     print("data.table installed and loaded")
+#   } else {
+#     stop("could not install data.table")
+#   }
+# }
+# 
+# if(#require("doParallel")){
+#   #print("doParallel is loaded correctly")
+# } else {
+#   print("trying to install doParallel")
+#   install.packages("doParallel")
+#   if(#require(doParallel)){
+#     print("doParallel installed and loaded")
+#   } else {
+#     stop("could not install doParallel")
+#   }
+# }
+# 
+# if(#require("foreach")){
+#   #print("foreach is loaded correctly")
+# } else {
+#   print("trying to install foreach")
+#   install.packages("foreach")
+#   if(#require(foreach)){
+#     print("foreach installed and loaded")
+#   } else {
+#     stop("could not install foreach")
+#   }
+# }
+# 
+# if(#require("circlize")){
+#   #print("circlize is loaded correctly")
+# } else {
+#   print("trying to install circlize")
+#   install.packages("circlize")
+#   if(#require(circlize)){
+#     print("circlize installed and loaded")
+#   } else {
+#     stop("could not install circlize")
+#   }
+# }
+# 
+# if(#require("dplyr")){
+#   #print("dplyr is loaded correctly")
+# } else {
+#   print("trying to install dplyr")
+#   install.packages("dplyr")
+#   if(#require(dplyr)){
+#     print("dplyr installed and loaded")
+#   } else {
+#     stop("could not install dplyr")
+#   }
+# }
+# 
+# if(#require("reshape2")){
+#   #print("reshape2 is loaded correctly")
+# } else {
+#   print("trying to install reshape2")
+#   install.packages("reshape2")
+#   if(#require(reshape2)){
+#     print("reshape2 installed and loaded")
+#   } else {
+#     stop("could not install reshape2")
+#   }
+# }
+# 
+# if(#require("tidyr")){
+#   #print("tidyr is loaded correctly")
+# } else {
+#   print("trying to install tidyr")
+#   install.packages("tidyr")
+#   if(#require(tidyr)){
+#     print("tidyr installed and loaded")
+#   } else {
+#     stop("could not install tidyr")
+#   }
+# }
+# 
+# if(#require("cowplot")){
+#   #print("cowplot is loaded correctly")
+# } else {
+#   print("trying to install cowplot")
+#   install.packages("cowplot")
+#   if(#require(cowplot)){
+#     print("cowplot installed and loaded")
+#   } else {
+#     stop("could not install cowplot")
+#   }
+# }
+# 
+# if(#require("ggplot2")){
+#   #print("ggplot2 is loaded correctly")
+# } else {
+#   print("trying to install ggplot2")
+#   install.packages("ggplot2")
+#   if(#require(ggplot2)){
+#     print("ggplot2 installed and loaded")
+#   } else {
+#     stop("could not install ggplot2")
+#   }
+# }
 
 
 ################################################################################
@@ -237,9 +237,9 @@ cybr2_SGDGenes <- function(peaks, GeneList = SGD_Genes, mywindow = 1000){
 
 cybrInputGATKTable <- function(rawData, yeast = TRUE){
 
-  require(dplyr)
-  require(doParallel)
-  require(foreach)
+  #require(dplyr)
+  #require(doParallel)
+  #require(foreach)
 
   HNGLCDRXY <- read.table(rawData, header = TRUE)
 
@@ -286,9 +286,9 @@ cybrInputGATKTable <- function(rawData, yeast = TRUE){
 
 cybrInputGATKTable2 <- function(rawData, yeast = TRUE){
 
-  require(dplyr)
-  require(doParallel)
-  require(foreach)
+  #require(dplyr)
+  #require(doParallel)
+  #require(foreach)
 
   HNGLCDRXY <- read.table(rawData, header = TRUE)
 
@@ -536,7 +536,7 @@ glmer_cb2_short <- function (..., W, formula, numgroups = FALSE, outputlength = 
 {
   data <- list(...)
 
-  require(lme4)
+  #require(lme4)
   if (is.null(W) || is.null(formula)) {
     stop("Weights (W) and formula must be provided")
   }
@@ -612,7 +612,7 @@ glm_cb2_short <- function(..., W, formula, numgroups = FALSE, outputlength = 4, 
 ################################################################################
 
 cybr_lmpeaks <- function(Data, cutoff = 2, width = 700){
-  require(dplyr)
+  #require(dplyr)
 
   Data %>% mutate(abs_zscore = abs(zscore)) %>%
     mutate_at(vars(abs_zscore), funs(replace(., .< cutoff, -2))) %>%
@@ -984,9 +984,9 @@ cybr_circos <- function(d1, d8, peaklist1 = NULL, peaklist8 = NULL, maxy = NULL,
 #   return(FinalPlot)
 # }
 #
-#
+# #CHANGED 12/5/25
 # ### Combine Parental and Experimental Variants #*
-# cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = test, yeast = TRUE){
+# cybrIDAlleles <- function(BSAdfstart = finaldf, Parentdf = cybrConvertParentalAlleles(Truncate = TRUE), yeast = TRUE){
 #
 #   Parentdf %>% na.omit()
 #   BSAdf <- left_join(BSAdfstart, Parentdf)

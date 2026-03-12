@@ -9,6 +9,7 @@ require(circlize)
 require(foreach)
 require(doParallel)
 require(data.table)
+require(lme4)
 
 #Install if not - Thank you @Thierry on stack overflow
 # if(#require("data.table")){

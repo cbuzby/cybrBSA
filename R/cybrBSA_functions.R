@@ -1,15 +1,15 @@
 
 #Load packages
-require(ggplot2)
-require(tidyr)
-require(reshape2)
-require(cowplot)
-require(dplyr)
-require(circlize)
-require(foreach)
-require(doParallel)
-require(data.table)
-require(lme4)
+# require(ggplot2)
+# require(tidyr)
+# require(reshape2)
+# require(cowplot)
+# require(dplyr)
+# require(circlize)
+# require(foreach)
+# require(doParallel) #fix this?
+# require(data.table)
+# require(lme4)
 
 #Install if not - Thank you @Thierry on stack overflow
 # if(#require("data.table")){
@@ -621,7 +621,7 @@ cybr_lmpeaks <- function(Data, cutoff = 2, width = 700){
     group_by(CSS, CHROM) %>%
     summarize(POS = POS,
               abs_zscore = abs_zscore,
-              smooth_abs_z = frollapply(abs_zscore, mean, n = 1, align = "center")) %>%
+              smooth_abs_z = frollapply(abs_zscore, FUN = mean, n = 1, align = "center")) %>%
     na.omit() %>%
     group_by(CHROM, CSS) %>% arrange(POS) %>%
     summarize(POS = POS, abs_zscore = abs_zscore, smooth_abs_z = smooth_abs_z,
